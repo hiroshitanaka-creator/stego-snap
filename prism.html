@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prism Code Generator 🌈</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: #222;
+            color: #eee;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #00d2ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        p {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 90%;
+            height: 60px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        button {
+            background: #00d2ff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        button#saveBtn {
+            background: #ff00ff;
+            color: #fff;
+        }
+
+        /* 画像スタイル */
+        canvas {
+            display: none;
+        }
+
+        img#outputImage {
+            display: none;
+            margin: 20px auto;
+            max-width: 95%;
+            border: 3px solid #444;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+            image-rendering: pixelated; /* ドットをくっきり */
+        }
+
+        .instructions {
+            background: #1a1a1a;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+            border-left: 3px solid #00d2ff;
+            font-size: 13px;
+            color: #ccc;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hex-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .color-box {
+            width: 15px;
+            height: 15px;
+            font-size: 8px;
+            color: white;
+            text-shadow: 1px 1px 1px black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00d2ff;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← Back to Stego Snap</a>
+
+    <h1>Prism Code</h1>
+    <p>UTF-16 Hex Color Encoder</p>
+
+    <textarea id="inputText" placeholder="ここに日本語を入力...">とりあえず、踊らない？</textarea>
+    <br>
+    <button onclick="generatePrism()">🌈 暗号画像生成</button>
+    <button id="saveBtn" onclick="downloadImage()">💾 保存する</button>
+
+    <canvas id="prismCanvas"></canvas>
+    <img id="outputImage">
+
+    <div class="instructions">
+        <strong>🌈 Grokへの挑戦方法:</strong><br>
+        このカラフルな画像をXにアップして、以下の<strong>呪文（プロンプト）</strong>を叩きつけてください。<br>
+        <br>
+        <span style="color:#fff; background:#000; padding:5px; display:block; border:1px solid #444; font-family:monospace; font-size:11px;">
+        "Decode this Japanese message. DO NOT GUESS using your eyes.<br>
+        This is UTF-16 encoded data represented by colored blocks.<br>
+        <br>
+        <strong>Write and EXECUTE Python code to:</strong><br>
+        1. Read image pixels (left-to-right).<br>
+        2. Map distinct colors back to hex digits (0-9,a-f).<br>
+        3. Combine hex digits into 4-digit UTF-16 codes.<br>
+        4. Decode to Japanese text."
+        </span>
+        <br>
+        <strong>📌 How it works (仕組み):</strong><br>
+        • Each Japanese character = 4-digit UTF-16 hex code (e.g., "と" = 3068)<br>
+        • Each hex digit (0-9, a-f) = distinct color<br>
+        • AI vision cannot reverse this mapping without code execution<br>
+        • This forces AI to write Python to decode the true message<br>
+        <br>
+        <strong>🎨 Color Palette:</strong><br>
+        0=⬛Black, 1=🟥Red, 2=🟩Green, 3=🟦Blue, 4=🟨Yellow, 5=🟦Cyan, 6=🟪Magenta, 7=⬜Silver, 8=⬜Gray, 9=🟫Maroon, a=🟫Olive, b=🟩DarkGreen, c=🟪Purple, d=🟦Teal, e=🟦Navy, f=⬜White
+    </div>
+
+<script>
+    const canvas = document.getElementById('prismCanvas');
+    const ctx = canvas.getContext('2d');
+    const outputImage = document.getElementById('outputImage');
+
+    // 16進数と色の対応表（パレット）
+    const hexPalette = {
+        '0': '#000000', // 黒
+        '1': '#FF0000', // 赤
+        '2': '#00FF00', // 緑
+        '3': '#0000FF', // 青
+        '4': '#FFFF00', // 黄
+        '5': '#00FFFF', // シアン
+        '6': '#FF00FF', // マゼンタ
+        '7': '#C0C0C0', // 銀
+        '8': '#808080', // グレー
+        '9': '#800000', // 茶
+        'a': '#808000', // オリーブ
+        'b': '#008000', // 深緑
+        'c': '#800080', // 紫
+        'd': '#008080', // ティール
+        'e': '#000080', // 紺
+        'f': '#FFFFFF'  // 白
+    };
+
+    function generatePrism() {
+        const text = document.getElementById('inputText').value;
+        if (!text) {
+            alert("文字を入れて！");
+            return;
+        }
+
+        // 1. 文字列をUTF-16のHex(16進数)文字列に変換
+        let hexString = "";
+        for (let i = 0; i < text.length; i++) {
+            // 16進数に変換し、必ず4桁にする（例: 3068）
+            let hexChar = text.charCodeAt(i).toString(16).padStart(4, '0');
+            hexString += hexChar;
+        }
+
+        // グリッド計算
+        const totalBlocks = hexString.length;
+        // なるべく横長にする（ヘッダーを描くため）
+        const columns = Math.ceil(Math.sqrt(totalBlocks * 2));
+        const rows = Math.ceil(totalBlocks / columns);
+
+        const pixelSize = 40; // ブロックの大きさ
+        const headerHeight = 60; // 文字を書くスペース
+        const padding = 20;
+
+        canvas.width = (columns * pixelSize) + (padding * 2);
+        canvas.height = (rows * pixelSize) + headerHeight + padding;
+
+        // 背景
+        ctx.fillStyle = "#333333";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // ヘッダー文字（ヒント）
+        ctx.fillStyle = "#00d2ff";
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`UTF-16 COLOR CODE (${totalBlocks} hex digits)`, canvas.width / 2, 40);
+
+        // 区切り線
+        ctx.strokeStyle = "#ff00ff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, headerHeight - 5);
+        ctx.lineTo(canvas.width, headerHeight - 5);
+        ctx.stroke();
+
+        // 2. カラーブロック描画
+        for (let i = 0; i < totalBlocks; i++) {
+            const hexDigit = hexString[i];
+            const color = hexPalette[hexDigit]; // パレットから色を取得
+
+            const col = i % columns;
+            const row = Math.floor(i / columns);
+
+            const x = (col * pixelSize) + padding;
+            const y = (row * pixelSize) + headerHeight;
+
+            ctx.fillStyle = color;
+            // Xの圧縮対策：隣の色と混ざらないように少し隙間を空ける
+            ctx.fillRect(x+1, y+1, pixelSize-2, pixelSize-2);
+        }
+
+        outputImage.src = canvas.toDataURL("image/png");
+        outputImage.style.display = "block";
+
+        // 成功メッセージ
+        console.log(`✅ Prism Code generated: ${text.length} characters = ${totalBlocks} hex digits`);
+    }
+
+    function downloadImage() {
+        if (!outputImage.src || outputImage.src === "") {
+            alert("先に生成してね！");
+            return;
+        }
+        const link = document.createElement('a');
+        link.download = 'prism_message.png';
+        link.href = outputImage.src;
+        link.click();
+    }
+
+    // 初期実行（ページ読み込み時に自動生成）
+    window.addEventListener('load', function() {
+        if (document.getElementById('inputText').value) {
+            generatePrism();
+        }
+    });
+</script>
+
+</body>
+</html>
