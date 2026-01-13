@@ -26,14 +26,16 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 
 ---
 
-### 2. 🔊 Noise Talk (Binary Grid Art)
+### 2. 🔊 Noise Talk: No Excuse Mode (Binary Grid Art)
 * **Tech**: Binary Visualization
-* **Function**: Converts text into a black-and-white grid pattern.
+* **Function**: Converts text into a black-and-white grid pattern. **The grid size is explicitly written in the image header**, leaving AI with no excuse to fail.
 * **Result**: AI vision models get confused by the grid and hallucinate meanings based on context (e.g., username), failing to decode accurately without code execution.
 
 **技術**: バイナリ可視化
-**機能**: テキストを白黒グリッドパターンに変換。
+**機能**: テキストを白黒グリッドパターンに変換。**グリッドサイズは画像ヘッダーに明示的に記載**され、AIに失敗の言い訳を与えない。
 **結果**: AIビジョンモデルはグリッドに混乱し、コンテキスト（ユーザー名など）から意味を幻覚し、コード実行なしでは正確にデコードできない。
+
+🔗 **[Try Noise Talk](https://hiroshitanaka-creator.github.io/stego-snap/noise.html)**
 
 ---
 
