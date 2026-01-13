@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stego Snap 🕵️‍♂️ - Hide Messages in Images</title>
+    <title>Stego Snap 🕵️‍♂️</title>
     <style>
         * {
             margin: 0;
@@ -223,61 +223,61 @@
 </head>
 <body>
     <div class="container">
-        <h1>🕵️‍♂️ Stego Snap</h1>
-        <p class="subtitle">"What is visible is not everything."</p>
+        <h1>🕵️‍♂️ Stego Snap v1.0</h1>
+        <p class="subtitle">"目に見えるものが、全てではない。" What is visible is not everything.</p>
 
         <!-- モード切り替えボタン -->
         <div class="mode-switch">
-            <button class="mode-btn active" onclick="switchMode('encode')">🔒 Encode (Hide)</button>
-            <button class="mode-btn" onclick="switchMode('decode')">🔓 Decode (Reveal)</button>
+            <button class="mode-btn active" onclick="switchMode('encode')">🔒 画像に埋め込む (Encode)</button>
+            <button class="mode-btn" onclick="switchMode('decode')">🔓 メッセージを読む (Decode)</button>
         </div>
 
         <!-- エンコードセクション -->
         <div id="encode-section" class="section active">
-            <h2 style="margin-bottom: 20px;">🔐 Hide a Secret Message</h2>
+            <h2 style="margin-bottom: 20px;">🔐 秘密のメッセージを隠す</h2>
 
             <div class="info">
-                📸 <strong>Step 1:</strong> Upload an image (PNG works best!)
+                📸 <strong>Step 1:</strong> 画像を選択してください（PNGが最適です！）
             </div>
 
             <div class="upload-area" onclick="document.getElementById('encode-upload').click()">
                 <div style="font-size: 3em;">📤</div>
-                <p><strong>Click to upload an image</strong></p>
-                <p style="color: #666; font-size: 0.9em;">or drag and drop here</p>
+                <p><strong>クリックして画像をアップロード</strong></p>
+                <p style="color: #666; font-size: 0.9em;">またはドラッグ&ドロップ</p>
             </div>
             <input type="file" id="encode-upload" accept="image/*">
 
             <div id="encode-preview" class="image-preview hidden"></div>
 
             <div class="info">
-                💬 <strong>Step 2:</strong> Type your secret message
+                💬 <strong>Step 2:</strong> 秘密のメッセージを入力
             </div>
 
-            <textarea id="secret-message" placeholder="Type your secret message here...&#10;&#10;例: 明日、渋谷で待ってるよ 🤫"></textarea>
+            <textarea id="secret-message" placeholder="ここに隠したい言葉を入力...&#10;&#10;例: 明日、渋谷で待ってるよ 🤫&#10;例: The secret meeting is at midnight 🌙"></textarea>
 
-            <button class="btn" id="encode-btn" onclick="encodeMessage()" disabled>🔒 Encode Message</button>
+            <button class="btn" id="encode-btn" onclick="encodeMessage()" disabled>🔒 画像に埋め込む (Encode)</button>
 
             <div id="encode-result" class="hidden"></div>
         </div>
 
         <!-- デコードセクション -->
         <div id="decode-section" class="section">
-            <h2 style="margin-bottom: 20px;">🔓 Reveal a Hidden Message</h2>
+            <h2 style="margin-bottom: 20px;">🔓 隠されたメッセージを読む</h2>
 
             <div class="info">
-                🖼️ Upload a stego-image to reveal its secret
+                🖼️ ステガノ画像をアップロードして秘密を解読
             </div>
 
             <div class="upload-area" onclick="document.getElementById('decode-upload').click()">
                 <div style="font-size: 3em;">🔍</div>
-                <p><strong>Click to upload a stego-image</strong></p>
-                <p style="color: #666; font-size: 0.9em;">The image with a hidden message</p>
+                <p><strong>クリックしてステガノ画像をアップロード</strong></p>
+                <p style="color: #666; font-size: 0.9em;">メッセージが隠された画像</p>
             </div>
             <input type="file" id="decode-upload" accept="image/*">
 
             <div id="decode-preview" class="image-preview hidden"></div>
 
-            <button class="btn" id="decode-btn" onclick="decodeMessage()" disabled>🔍 Decode Message</button>
+            <button class="btn" id="decode-btn" onclick="decodeMessage()" disabled>🔓 メッセージを読む (Decode)</button>
 
             <div id="decode-result" class="hidden"></div>
         </div>
@@ -286,8 +286,8 @@
         <canvas id="canvas" style="display: none;"></canvas>
 
         <div class="footer">
-            <p>🛡️ 100% Private - All processing happens in your browser</p>
-            <p>Created with 🖤 by <a href="https://github.com/hiroshitanaka-creator/stego-snap" target="_blank">Hiroshi Tanaka Creator</a></p>
+            <p>🛡️ 100% プライベート - すべての処理はブラウザ内で完結します</p>
+            <p style="margin-top: 10px;">Created with 🖤 by <a href="https://github.com/hiroshitanaka-creator/stego-snap" target="_blank">Hiroshi Tanaka Creator</a></p>
         </div>
     </div>
 
@@ -398,17 +398,17 @@
             img.src = URL.createObjectURL(file);
         }
 
-        // 【魔術の核心】メッセージをエンコード
+        // 🔒 暗号化（埋め込み）ロジック
         function encodeMessage() {
             const message = document.getElementById('secret-message').value;
 
             if (!message) {
-                showError('encode', 'Please enter a secret message!');
+                showError('encode', 'メッセージを入力してください！');
                 return;
             }
 
             if (!currentImage) {
-                showError('encode', 'Please upload an image first!');
+                showError('encode', '画像を選択してください！');
                 return;
             }
 
@@ -427,46 +427,49 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
-                // メッセージをバイナリに変換
-                const messageBinary = stringToBinary(message);
+                // 1. テキストを「0」と「1」のバイナリに変換する
+                // UTF-16対応で16ビット単位、最後にヌル終端文字（00000000 00000000）を追加
+                let binary = "";
+                for (let i = 0; i < message.length; i++) {
+                    // 文字を16ビット（2バイト）の2進数に変換（日本語・絵文字対応）
+                    binary += message.charCodeAt(i).toString(2).padStart(16, '0');
+                }
+                binary += "0000000000000000"; // 終了の合図（ヌル文字）
 
-                // 容量チェック
+                // 2. 画像の容量チェック
                 const maxBits = (data.length / 4) * 3; // RGBの3チャンネル
-                if (messageBinary.length > maxBits - 32) { // 32ビットは長さ情報用
-                    showError('encode', 'Message is too long for this image! Try a larger image or shorter message.');
+                if (binary.length > maxBits) {
+                    showError('encode', '文章が長すぎて、この画像には入りきりません！もっと大きな画像を使うか、短いメッセージにしてください。');
                     return;
                 }
 
-                // 最初の32ビットにメッセージ長を埋め込む
-                const lengthBinary = (messageBinary.length).toString(2).padStart(32, '0');
+                // 3. ピクセルを1つずつ書き換える（ここが核心！LSBステガノグラフィ）
+                for (let i = 0; i < binary.length; i++) {
+                    // 現在のピクセルの値（0〜255）
+                    let originalValue = data[i];
 
-                // LSBにデータを埋め込む
-                let bitIndex = 0;
-                const totalBinary = lengthBinary + messageBinary;
+                    // 埋め込みたいビット（0 か 1）
+                    let secretBit = parseInt(binary[i]);
 
-                for (let i = 0; i < data.length && bitIndex < totalBinary.length; i += 4) {
-                    // R, G, B チャンネルに1ビットずつ埋め込む（Alphaは除く）
-                    for (let j = 0; j < 3 && bitIndex < totalBinary.length; j++) {
-                        // 最下位ビットをクリアして、新しいビットをセット
-                        data[i + j] = (data[i + j] & 0xFE) | parseInt(totalBinary[bitIndex]);
-                        bitIndex++;
-                    }
+                    // 論理演算：最下位ビットを0にして（AND 254）、秘密のビットを足す（OR）
+                    data[i] = (originalValue & 254) | secretBit;
                 }
 
-                // 変更したデータをキャンバスに書き戻す
+                // 4. 書き換えたデータを画像に戻す
                 ctx.putImageData(imageData, 0, 0);
 
-                // ダウンロードリンクを作成
+                // 5. ダウンロードリンクを作成
                 canvas.toBlob(function(blob) {
                     const url = URL.createObjectURL(blob);
                     const resultDiv = document.getElementById('encode-result');
                     resultDiv.innerHTML = `
                         <div class="success">
-                            <h3>✅ Message Hidden Successfully!</h3>
-                            <p>Your secret message has been embedded into the image.</p>
-                            <p><strong>Message length:</strong> ${message.length} characters (${messageBinary.length} bits)</p>
+                            <h3>✅ 埋め込み完了！</h3>
+                            <p>秘密のメッセージが画像に埋め込まれました。</p>
+                            <p><strong>メッセージ長:</strong> ${message.length} 文字 (${binary.length} ビット)</p>
+                            <p style="margin-top: 10px; color: #666; font-size: 0.9em;">📱 スマホの方は画像を長押しして保存してください</p>
                             <a href="${url}" download="stego-image.png" class="btn" style="display: inline-block; width: auto; padding: 15px 40px; text-decoration: none; margin-top: 10px;">
-                                💾 Download Stego-Image
+                                💾 ステガノ画像をダウンロード
                             </a>
                         </div>
                     `;
@@ -474,14 +477,14 @@
                 }, 'image/png');
 
             } catch (error) {
-                showError('encode', 'An error occurred: ' + error.message);
+                showError('encode', 'エラーが発生しました: ' + error.message);
             }
         }
 
-        // 【魔術の解読】メッセージをデコード
+        // 🔓 復号（読み取り）ロジック
         function decodeMessage() {
             if (!currentImage) {
-                showError('decode', 'Please upload a stego-image first!');
+                showError('decode', 'ステガノ画像を選択してください！');
                 return;
             }
 
@@ -500,78 +503,51 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
-                // 最初の32ビットからメッセージ長を読み取る
-                let lengthBinary = '';
-                let bitIndex = 0;
+                let binary = "";
+                let output = "";
+                let bitsCollected = 0;
 
-                for (let i = 0; i < data.length && bitIndex < 32; i += 4) {
-                    for (let j = 0; j < 3 && bitIndex < 32; j++) {
-                        lengthBinary += (data[i + j] & 1).toString();
-                        bitIndex++;
+                // 全ピクセルを走査して、最下位ビット（LSB）を拾い集める
+                for (let i = 0; i < data.length; i++) {
+                    // 最後の1桁を取り出す (AND 1)
+                    const bit = data[i] & 1;
+                    binary += bit;
+                    bitsCollected++;
+
+                    // 16ビット（1文字分）たまったら文字に戻す（UTF-16対応）
+                    if (binary.length === 16) {
+                        const charCode = parseInt(binary, 2);
+
+                        // 終了の合図（00000000 00000000 = ヌル文字）が出たら終わり
+                        if (charCode === 0) break;
+
+                        output += String.fromCharCode(charCode);
+                        binary = ""; // リセット
                     }
                 }
 
-                const messageLength = parseInt(lengthBinary, 2);
-
-                // メッセージ長の妥当性チェック
-                if (messageLength <= 0 || messageLength > (data.length / 4) * 3) {
-                    showError('decode', 'No hidden message found, or this is not a valid stego-image.');
+                // メッセージが見つからなかった場合
+                if (output.length === 0) {
+                    showError('decode', '隠されたメッセージが見つかりませんでした。これはステガノ画像ではない可能性があります。');
                     return;
                 }
-
-                // メッセージビットを読み取る
-                let messageBinary = '';
-
-                for (let i = bitIndex / 3 * 4; i < data.length && messageBinary.length < messageLength; i += 4) {
-                    for (let j = 0; j < 3 && messageBinary.length < messageLength; j++) {
-                        if (bitIndex >= 32) { // 長さ情報をスキップ
-                            messageBinary += (data[i + j] & 1).toString();
-                        }
-                        bitIndex++;
-                    }
-                }
-
-                // バイナリを文字列に変換
-                const message = binaryToString(messageBinary);
 
                 // 結果を表示
                 const resultDiv = document.getElementById('decode-result');
                 resultDiv.innerHTML = `
                     <div class="success">
-                        <h3>🔓 Secret Message Revealed!</h3>
+                        <h3>🔓 解読されたメッセージ:</h3>
                         <div class="result">
-                            <strong>Hidden Message:</strong>
-                            <p style="margin-top: 10px; font-size: 1.1em; color: #333; white-space: pre-wrap;">${escapeHtml(message)}</p>
+                            <p style="font-size: 1.2em; color: #333; white-space: pre-wrap; line-height: 1.6;">${escapeHtml(output)}</p>
                         </div>
-                        <p style="margin-top: 10px;"><strong>Message length:</strong> ${message.length} characters (${messageLength} bits)</p>
+                        <p style="margin-top: 10px;"><strong>メッセージ長:</strong> ${output.length} 文字 (${bitsCollected} ビット読み取り)</p>
                     </div>
                 `;
                 resultDiv.classList.remove('hidden');
 
             } catch (error) {
-                showError('decode', 'Failed to decode message: ' + error.message);
+                showError('decode', 'デコードに失敗しました: ' + error.message);
             }
-        }
-
-        // 文字列をバイナリに変換
-        function stringToBinary(str) {
-            let binary = '';
-            for (let i = 0; i < str.length; i++) {
-                const charCode = str.charCodeAt(i);
-                binary += charCode.toString(2).padStart(16, '0'); // UTF-16対応
-            }
-            return binary;
-        }
-
-        // バイナリを文字列に変換
-        function binaryToString(binary) {
-            let str = '';
-            for (let i = 0; i < binary.length; i += 16) {
-                const charCode = parseInt(binary.substr(i, 16), 2);
-                if (charCode === 0) break; // ヌル文字で終了
-                str += String.fromCharCode(charCode);
-            }
-            return str;
         }
 
         // エラー表示
