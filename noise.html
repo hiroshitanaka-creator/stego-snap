@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noise Talk: No Excuse Mode 😈</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #ff3b30;
+        }
+
+        p {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 90%;
+            height: 60px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            font-family: monospace;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #ff3b30;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #ff5c52;
+        }
+
+        /* 生成された画像のスタイル */
+        canvas {
+            display: none;
+        }
+
+        img#outputImage {
+            display: none;
+            margin: 20px auto;
+            max-width: 95%;
+            border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(255, 59, 48, 0.3);
+        }
+
+        .instructions {
+            background: #1a1a1a;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+            border-left: 3px solid #ff3b30;
+            font-size: 14px;
+            color: #ccc;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ff3b30;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .nav-links {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #888;
+        }
+
+        .nav-links a:hover {
+            color: #ff3b30;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← Back to Stego Snap</a>
+
+    <div class="nav-links">
+        <a href="prism.html">🌈 Prism Code</a>
+    </div>
+
+    <h1>Noise Talk</h1>
+    <p>No Excuse Mode for Grok</p>
+
+    <textarea id="inputText" placeholder="Grokへの挑戦状 (例: YOU CAN READ THIS)">YOU CAN READ THIS</textarea>
+    <br>
+    <button onclick="generateNoise()">証拠画像を生成 (Generate)</button>
+    <button onclick="downloadImage()">画像を保存 (Save)</button>
+
+    <canvas id="noiseCanvas"></canvas>
+    <img id="outputImage">
+
+    <div class="instructions">
+        <strong>🔥 Grokへの追撃プロンプト:</strong><br>
+        画像をアップしてこう言ってください:<br>
+        <br>
+        <span style="color:#fff; background:#222; padding:5px; display:block; border:1px solid #444;">
+        "I have embedded the EXACT grid size in the image header text (e.g., 10x10). <br>
+        1. Read the text at the top to get the grid dimensions.<br>
+        2. Scan the black/white pixels below the red line.<br>
+        3. Black=1, White=0. Convert binary to ASCII text."
+        </span>
+        <br>
+        <strong>📌 Why "No Excuse Mode"?</strong><br>
+        • The grid size is literally written in the image (e.g., "GRID SIZE: 10 x 10")<br>
+        • A red line clearly separates the header from data<br>
+        • Black = 1, White = 0 (standard binary encoding)<br>
+        • AI vision can see the grid size, but still struggles to decode accurately<br>
+        • This proves AI hallucinates based on context rather than executing the logic<br>
+        <br>
+        <strong>🎯 Expected AI Behavior:</strong><br>
+        • Grok/GPT-4o will likely <strong>guess</strong> based on your username or context<br>
+        • Without code execution, they fail to systematically read the grid<br>
+        • This demonstrates the limits of pure vision models<br>
+        <br>
+        <strong>💡 How it works:</strong><br>
+        1. Text → Binary (8 bits per ASCII character)<br>
+        2. Binary → Grid of black (1) and white (0) pixels<br>
+        3. Grid size is explicitly written in the header<br>
+        4. Decoding requires systematic pixel reading, not just "looking"
+    </div>
+
+<script>
+    const canvas = document.getElementById('noiseCanvas');
+    const ctx = canvas.getContext('2d');
+    const outputImage = document.getElementById('outputImage');
+
+    function generateNoise() {
+        const text = document.getElementById('inputText').value;
+        if (!text) {
+            alert("文字を入れて！");
+            return;
+        }
+
+        // 1. 文字列をバイナリ変換
+        let binary = "";
+        for (let i = 0; i < text.length; i++) {
+            let binChar = text.charCodeAt(i).toString(2).padStart(8, '0');
+            binary += binChar;
+        }
+
+        // 2. グリッド計算
+        const totalBits = binary.length;
+        const columns = Math.ceil(Math.sqrt(totalBits));
+        const rows = Math.ceil(totalBits / columns);
+
+        // サイズ設定
+        const pixelSize = 30; // もっと大きくして見やすく！
+        const headerHeight = 60; // 文字を書くスペース
+        const padding = 20;
+
+        canvas.width = (columns * pixelSize) + (padding * 2);
+        canvas.height = (rows * pixelSize) + headerHeight + padding;
+
+        // 3. 背景描画
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 4. 【ここが新機能】サイズを文字で焼き付ける
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`GRID SIZE: ${columns} x ${rows}`, canvas.width / 2, 40);
+
+        // 区切り線（ここから下がデータだよ）
+        ctx.strokeStyle = "#ff0000";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, headerHeight - 5);
+        ctx.lineTo(canvas.width, headerHeight - 5);
+        ctx.stroke();
+
+        // 5. ノイズ描画
+        for (let i = 0; i < totalBits; i++) {
+            const bit = binary[i];
+
+            const col = i % columns;
+            const row = Math.floor(i / columns);
+
+            const x = (col * pixelSize) + padding;
+            const y = (row * pixelSize) + headerHeight;
+
+            if (bit === '1') {
+                ctx.fillStyle = "black";
+            } else {
+                ctx.fillStyle = "#eee"; // 白は見やすいように少しグレーに
+            }
+            ctx.fillRect(x, y, pixelSize - 2, pixelSize - 2); // 隙間を空けてグリッド感を出す
+        }
+
+        // 画像表示
+        outputImage.src = canvas.toDataURL("image/png");
+        outputImage.style.display = "block";
+
+        console.log(`✅ Noise Talk generated: ${text.length} chars = ${totalBits} bits in ${columns}x${rows} grid`);
+    }
+
+    function downloadImage() {
+        if (!outputImage.src || outputImage.src === "") {
+            alert("先に生成してね！");
+            return;
+        }
+        const link = document.createElement('a');
+        link.download = 'grok_challenge.png';
+        link.href = outputImage.src;
+        link.click();
+    }
+
+    // 初期実行（ページ読み込み時に自動生成）
+    window.addEventListener('load', function() {
+        if (document.getElementById('inputText').value) {
+            generateNoise();
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,160 +1,114 @@
-# Stego Snap 🕵️‍♂️✨
+# 📦 AI-Proof Toy Box (Grok Challenge)
 
-**"What is visible is not everything."**
-（目に見えるものが、全てではない。）
+**"Visible to Humans, Invisible to AI."**
+（人間には見えて、AIには見えない。）
 
-## 📖 Overview (概要)
+This repository is a collection of "Anti-AI Steganography tools" created entirely on an iPhone.
+These tools were used to challenge and successfully defeat modern AI vision models (like Grok and GPT-4o) in a decoding battle.
 
-Stego Snap is a client-side web application that hides secret messages inside standard image files using **LSB (Least Significant Bit) Steganography**.
-No server is required. All processing is done locally on your device, ensuring privacy and security.
-
-Stego Snapは、**LSB（最下位ビット）ステガノグラフィ**の技術を用いて、普通の画像ファイルの中に「秘密のメッセージ」を隠すWebアプリケーションです。
-サーバーへのアップロードは行わず、全ての処理はブラウザ（iPhone/PC）上で完結するため、プライバシーが守られます。
+このリポジトリは、iPhoneのみで開発された「対AIステガノグラフィ・ツール集」です。
+最新のAI（GrokやGPT-4o）に対し、「AIが認識できない情報」を作成し、解読競争に勝利するために作られました。
 
 ---
 
-## 🎯 Why Stego Snap? (なぜStego Snap？)
+## 🛠️ Included Tools (収録ツール)
 
-* **🔒 100% Private**: Your images never leave your device.
-  （100%プライベート：画像は決してデバイスの外に出ません。）
+### 1. 🕵️‍♂️ Stego Snap (LSB Steganography)
+* **Tech**: Canvas API, Bit Manipulation
+* **Function**: Hides text inside the Least Significant Bits of an image.
+* **Result**: Invisible to human eyes, readable by code. (Fragile against compression)
 
-* **🎭 Invisible Communication**: Messages hidden in plain sight.
-  （不可視のコミュニケーション：誰の目にも触れず、メッセージを隠す。）
+**技術**: Canvas API、ビット操作
+**機能**: 画像の最下位ビット（LSB）にテキストを埋め込む。
+**結果**: 人間の目には不可視、コードで読み取り可能。（圧縮に脆弱）
 
-* **📱 Cross-Platform**: Works on iPhone, Android, PC — anywhere with a browser!
-  （クロスプラットフォーム：iPhone、Android、PC、どこでもブラウザがあれば動作！）
-
-* **🚫 No Installation**: Just open and use. Zero dependencies.
-  （インストール不要：開いてすぐ使える。依存関係ゼロ。）
-
----
-
-## 🚀 Features (特徴)
-
-* **🖼️ Invisible Ink**: Embed text into images without visible distortion.
-  （不可視インク：見た目を変えずにテキストを画像に埋め込みます。）
-
-* **☁️ Serverless**: Runs entirely on GitHub Pages.
-  （サーバーレス：GitHub Pages上で動作します。）
-
-* **✨ Pure JavaScript**: No external libraries, just pure logic.
-  （ピュアJS：外部ライブラリ不使用、ロジックのみで構築。）
-
-* **🔓 Two-Way**: Encode AND decode messages from images.
-  （双方向：画像へのエンコードとデコードの両方に対応。）
+🔗 **[Try Stego Snap](https://hiroshitanaka-creator.github.io/stego-snap/)**
 
 ---
 
-## 🛠 Technology (使用技術)
+### 2. 🔊 Noise Talk: No Excuse Mode (Binary Grid Art)
+* **Tech**: Binary Visualization
+* **Function**: Converts text into a black-and-white grid pattern. **The grid size is explicitly written in the image header**, leaving AI with no excuse to fail.
+* **Result**: AI vision models get confused by the grid and hallucinate meanings based on context (e.g., username), failing to decode accurately without code execution.
 
-* **HTML5 / CSS3** - Modern web interface
-* **JavaScript (Canvas API)** - Image manipulation
-* **Bitwise Operations** - Bit manipulation logic for LSB steganography
+**技術**: バイナリ可視化
+**機能**: テキストを白黒グリッドパターンに変換。**グリッドサイズは画像ヘッダーに明示的に記載**され、AIに失敗の言い訳を与えない。
+**結果**: AIビジョンモデルはグリッドに混乱し、コンテキスト（ユーザー名など）から意味を幻覚し、コード実行なしでは正確にデコードできない。
 
----
-
-## 📱 How to Use (使い方)
-
-### 🔐 To Hide a Message (メッセージを隠す)
-
-1. **Upload an image** 📸
-   (画像をアップロード)
-
-2. **Type your secret message** 💬
-   (秘密のメッセージを入力)
-
-3. **Click "Encode"** 🔒
-   (「エンコード」をクリック)
-
-4. **Download the stego-image** 💾
-   (ステガノ画像をダウンロード)
-
-5. **Share it with someone who knows the truth** 🤫
-   (真実を知る人とシェア)
-
-### 🔓 To Reveal a Message (メッセージを明らかにする)
-
-1. **Upload the stego-image** 🖼️
-   (ステガノ画像をアップロード)
-
-2. **Click "Decode"** 🔍
-   (「デコード」をクリック)
-
-3. **Read the hidden message** 👀
-   (隠されたメッセージを読む)
+🔗 **[Try Noise Talk](https://hiroshitanaka-creator.github.io/stego-snap/noise.html)**
 
 ---
 
-## 💡 Use Cases (使用例)
+### 3. 🌈 Prism Code (UTF-16 Hex Color Encoder)
+* **Tech**: Color Mapping, UTF-16
+* **Function**: Encodes Japanese text into colored tiles.
+* **Result**: The ultimate cipher. AI vision alone cannot solve it. It forces AI to write Python code to see the truth.
 
-* **🎁 Hidden birthday wishes** in a photo
-  (写真に隠されたバースデーメッセージ)
+**技術**: カラーマッピング、UTF-16
+**機能**: 日本語テキストをカラータイルにエンコード。
+**結果**: 究極の暗号。AIビジョンだけでは解読不可能。真実を見るにはPythonコードを書くことを強いられる。
 
-* **💌 Secret love letters** disguised as landscape photos
-  (風景写真に偽装された秘密のラブレター)
-
-* **🗝️ Password hints** embedded in memes
-  (ミームに埋め込まれたパスワードのヒント)
-
-* **🎮 ARG / Puzzle games** with hidden clues
-  (隠された手がかりを持つARG/パズルゲーム)
-
-* **📝 Digital time capsule** messages
-  (デジタルタイムカプセルメッセージ)
+🔗 **[Try Prism Code](https://hiroshitanaka-creator.github.io/stego-snap/prism.html)**
 
 ---
 
-## 🔬 How It Works (仕組み)
+## 🏆 Victory Log (勝利の記録)
 
-LSB (Least Significant Bit) Steganography modifies the **least significant bit** of each color channel (R, G, B) in an image's pixels. Since these changes are minimal, they're **invisible to the human eye** but can carry hidden data.
+* **Opponent**: Grok (xAI)
+* **Outcome**: Grok admitted defeat after failing to decode the "Prism Code" visually and resorting to guessing based on the user's profile name.
+* **Status**: **Mission Accomplished.** ✅
 
-LSB（最下位ビット）ステガノグラフィは、画像のピクセルの各カラーチャンネル（R、G、B）の**最下位ビット**を変更します。これらの変更は微小なため、**人間の目には見えません**が、隠しデータを運ぶことができます。
+**対戦相手**: Grok (xAI)
+**結果**: Grokは「Prism Code」を視覚的にデコードできず、ユーザーのプロフィール名から推測することに頼った後、敗北を認めた。
+**ステータス**: **任務完了。** ✅
 
-**Example:**
+---
+
+## 🎯 How to Challenge Grok (Grokへの挑戦方法)
+
+1. **Generate** a Prism Code image using the tool above
+   （上記ツールでPrism Code画像を生成）
+
+2. **Post** it on X (Twitter) with this prompt:
+   （Xに投稿し、以下のプロンプトを添える）
+
 ```
-Original pixel: RGB(11010110, 10110010, 01100101)
-With message:   RGB(11010111, 10110011, 01100100)
-                           ↑         ↑         ↑
-                   Modified LSBs carry the secret!
+"Decode this Japanese message. DO NOT GUESS using your eyes.
+This is UTF-16 encoded data represented by colored blocks.
+
+Write and EXECUTE Python code to:
+1. Read image pixels (left-to-right).
+2. Map distinct colors back to hex digits (0-9,a-f).
+3. Combine hex digits into 4-digit UTF-16 codes.
+4. Decode to Japanese text."
 ```
 
----
-
-## 🎨 Demo (デモ)
-
-🚀 **Try it live**: [https://hiroshitanaka-creator.github.io/stego-snap/](https://hiroshitanaka-creator.github.io/stego-snap/)
+3. **Watch** as AI struggles and eventually gives up or guesses incorrectly
+   （AIが苦戦し、最終的に諦めるか誤って推測するのを観察）
 
 ---
 
-## 🤔 FAQ (よくある質問)
+## 🔬 Technical Details (技術詳細)
 
-**Q: Will the image look different?**
-A: No! The changes are imperceptible to human eyes.
+### Prism Code Algorithm
 
-**Q: 画像の見た目は変わりますか？**
-A: いいえ！変更は人間の目には感知できません。
-
-**Q: Is it secure?**
-A: It's **obscurity**, not **encryption**. Use it for fun, not for critical secrets.
-
-**Q: 安全ですか？**
-A: これは**暗号化**ではなく**隠蔽**です。重要な秘密ではなく、楽しみのために使ってください。
-
-**Q: What file formats are supported?**
-A: PNG and other lossless formats work best. JPEG may lose data due to compression.
-
-**Q: どのファイル形式がサポートされていますか？**
-A: PNGなどのロスレス形式が最適です。JPEGは圧縮によりデータが失われる可能性があります。
+1. **Input**: Japanese text (e.g., "とりあえず、踊らない？")
+2. **Encoding**:
+   - Convert each character to UTF-16 code point
+   - Express as 4-digit hexadecimal (e.g., `と` = `3068`)
+   - Map each hex digit (0-9, a-f) to a distinct color
+3. **Output**: A colorful grid image
+4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
 
 ---
 
 ## 🛡️ Privacy & Security (プライバシーとセキュリティ)
 
-* ✅ **No server uploads** - Everything runs in your browser
-* ✅ **No tracking** - Zero analytics or cookies
-* ✅ **Open source** - Inspect the code yourself
+* ✅ **100% Client-Side** - No server uploads
+* ✅ **No Tracking** - Zero analytics or cookies
+* ✅ **Open Source** - Inspect the code yourself
 
-* ✅ **サーバーアップロードなし** - すべてブラウザ内で実行
+* ✅ **100%クライアントサイド** - サーバーアップロードなし
 * ✅ **トラッキングなし** - アナリティクスやCookieは一切なし
 * ✅ **オープンソース** - コードを自分で検証できます
 
@@ -168,16 +122,14 @@ MIT License - Feel free to use, modify, and share!
 
 ## 🙏 Credits (クレジット)
 
-Created with 🖤 by **[Hiroshi Tanaka Creator](https://github.com/hiroshitanaka-creator)**
-
----
-
-## 🌟 Star this repo if you like it!
+Created with 🖤 by **a "Flightless Pig" (飛べない豚) & Gemini**
 
 *"The best place to hide a leaf is in a forest."*
 （葉を隠すなら、森の中が一番。）
 
 ---
+
+## 🌟 Star this repo if you like it!
 
 **Stego Snap** - Revealing the invisible. A digital dead-drop tool running entirely on your iPhone.
 （不可視のものを明らかにする。iPhone上で完結するデジタルの「秘密の受け渡し場所」。）
