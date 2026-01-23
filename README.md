@@ -191,7 +191,7 @@ MIT License - Feel free to use, modify, and share!
 
 ## 🙏 Credits (クレジット)
 
-**Core Tools** created with 🖤 by **a "Flightless Pig" (飛べない豚) & Gemini**
+**Core Tools** created with 🖤 by **a "Flightless Pig" (飛べない豚) & 未来の宇宙観測者**
 
 **Animated Prism Storm** evolved from prototype by **hiroshitanaka-creator**
 
