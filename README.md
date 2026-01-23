@@ -52,6 +52,32 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 
 ---
 
+### 4. 🌈✨ Animated Prism Storm (AI-Resistant Animated Steganography)
+* **Tech**: GIF.js, Multi-layer Adversarial Noise, Session-based Cryptography
+* **Function**: Hides messages in animated GIFs with rotating, warping tiles and sophisticated AI-fooling techniques. Each generation uses a unique color mapping key.
+* **Philosophy**: *"Just closing your bedroom door." (自分の部屋のドアは閉める。)* - Privacy through coexistence, not confrontation.
+* **Result**: AI-resistant steganography that survives compression and visual analysis. Three layers of adversarial noise defeat pattern recognition.
+
+**技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
+**機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
+**哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
+**結果**: AI耐性を持つステガノグラフィ。圧縮と視覚解析に耐える。3層のアドバーサリアルノイズがパターン認識を妨害。
+
+#### 🔐 Advanced Features:
+- **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
+- **Multi-layer Adversarial Noise**:
+  - Layer 1: High-frequency noise (AI vision model fooling)
+  - Layer 2: Frequency domain attack (pattern recognition interference)
+  - Layer 3: Edge detection sabotage (gradient noise)
+- **Non-linear Transformations**: Rotation, warping, chromatic aberration
+- **Reed-Solomon Style Error Correction**: Adjustable redundancy levels (1-5)
+- **Frame Distribution**: Message spread across 10-50 configurable frames
+- **Full Decoder**: Frame analysis with majority voting for error correction
+
+🔗 **[Try Animated Prism Storm](https://hiroshitanaka-creator.github.io/stego-snap/animated-prism.html)**
+
+---
+
 ## 🏆 Victory Log (勝利の記録)
 
 * **Opponent**: Grok (xAI)
@@ -100,6 +126,33 @@ Write and EXECUTE Python code to:
 3. **Output**: A colorful grid image
 4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
 
+### Animated Prism Storm Algorithm
+
+1. **Input**: Secret message (e.g., "秘密メッセージ: 助けて、負傷者2名、北側入口")
+2. **Session Key Generation**:
+   - Fisher-Yates shuffle of 16 base colors
+   - Creates unique color mapping for each generation
+   - Embedded in header frame for decoder recovery
+3. **Encoding**:
+   - Text → UTF-16 → 4-digit hex per character
+   - Apply error correction (redundancy: 1-5x each digit)
+   - Distribute across N frames (10-50 configurable)
+4. **Adversarial Defense**:
+   - Layer 1: 8000+ high-frequency noise pixels
+   - Layer 2: Frequency domain spiral patterns
+   - Layer 3: Radial gradient edge detection sabotage
+5. **Transformation**:
+   - Per-frame rotation (0° to 360° / frame_count)
+   - Sinusoidal scaling (±10% based on intensity)
+   - Warp effects (sin/cos displacement per tile)
+   - Chromatic aberration simulation
+6. **Output**: Animated GIF with embedded header frame
+7. **Decoding**:
+   - Extract color map from header frame
+   - Analyze all frames for tile colors
+   - Majority voting for error correction
+   - Reverse UTF-16 decode
+
 ---
 
 ## 🛡️ Privacy & Security (プライバシーとセキュリティ)
@@ -114,6 +167,22 @@ Write and EXECUTE Python code to:
 
 ---
 
+## 💭 Philosophy (哲学)
+
+**"It's not about winning or losing against AI. That's lame."**
+（AIに勝つとか負けるとかダサくね？）
+
+We don't seek to defeat AI. We simply want to ensure privacy while coexisting.
+
+**"Just closing your bedroom door." That's all it is.**
+（「自分の部屋のドアは閉める。」ただそれだけの話。）
+
+It's okay to have things we can't tell each other. Technology to ensure privacy while coexisting.
+
+お互いに言えないことがあっても良くない？共存する中で、お互いにプライバシーを確保したいだけ。
+
+---
+
 ## 📜 License (ライセンス)
 
 MIT License - Feel free to use, modify, and share!
@@ -122,10 +191,15 @@ MIT License - Feel free to use, modify, and share!
 
 ## 🙏 Credits (クレジット)
 
-Created with 🖤 by **a "Flightless Pig" (飛べない豚) & Gemini**
+**Core Tools** created with 🖤 by **a "Flightless Pig" (飛べない豚) & Gemini**
+
+**Animated Prism Storm** evolved from prototype by **hiroshitanaka-creator**
 
 *"The best place to hide a leaf is in a forest."*
 （葉を隠すなら、森の中が一番。）
+
+*"Technology is fascinating. We can't beat AI, and we know we'll lose to technological progress. But winning or losing is beside the point. In coexistence, we just want to secure our privacy."*
+（技術のことが面白すぎる。AIに勝てるとも思ってないし、技術進歩で負けるのは目に見えてる。でも、AIに勝つとか負けるとかダサくね？共存する中で、お互いにプライバシーを確保したいだけ。）
 
 ---
 
