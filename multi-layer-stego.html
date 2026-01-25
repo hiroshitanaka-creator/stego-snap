@@ -788,18 +788,41 @@ async function decryptMessage(ciphertextB64, passphrase) {
 }
 
 // =============================================================================
+// CRC32 (IEEE 802.3 polynomial)
+// =============================================================================
+const CRC32_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+        let crc = i;
+        for (let j = 0; j < 8; j++) {
+            crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1);
+        }
+        table[i] = crc >>> 0;
+    }
+    return table;
+})();
+
+function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+        crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// =============================================================================
 // FRAMING PROTOCOL
+// Frame: MLSG (4) + version (1) + length (4) + crc32 (4) + payload (N)
 // =============================================================================
 function createFrame(payload) {
-    // MLSG + version(1byte) + length(4bytes, big-endian) + payload
     const payloadBytes = new TextEncoder().encode(payload);
-    const frame = new Uint8Array(4 + 1 + 4 + payloadBytes.length);
+    const frame = new Uint8Array(4 + 1 + 4 + 4 + payloadBytes.length);
 
-    // Magic
-    frame[0] = 'M'.charCodeAt(0);
-    frame[1] = 'L'.charCodeAt(0);
-    frame[2] = 'S'.charCodeAt(0);
-    frame[3] = 'G'.charCodeAt(0);
+    // Magic: MLSG
+    frame[0] = 0x4D; // M
+    frame[1] = 0x4C; // L
+    frame[2] = 0x53; // S
+    frame[3] = 0x47; // G
 
     // Version
     frame[4] = VERSION;
@@ -811,30 +834,51 @@ function createFrame(payload) {
     frame[7] = (len >> 8) & 0xff;
     frame[8] = len & 0xff;
 
+    // CRC32 of payload (big-endian)
+    const checksum = crc32(payloadBytes);
+    frame[9] = (checksum >> 24) & 0xff;
+    frame[10] = (checksum >> 16) & 0xff;
+    frame[11] = (checksum >> 8) & 0xff;
+    frame[12] = checksum & 0xff;
+
     // Payload
-    frame.set(payloadBytes, 9);
+    frame.set(payloadBytes, 13);
 
     return frame;
 }
 
 function parseFrame(bytes) {
-    if (bytes.length < 9) return null;
+    // Minimum frame size: header (13) + at least 1 byte payload
+    if (bytes.length < 13) return null;
 
-    // Check magic
-    if (bytes[0] !== 'M'.charCodeAt(0) ||
-        bytes[1] !== 'L'.charCodeAt(0) ||
-        bytes[2] !== 'S'.charCodeAt(0) ||
-        bytes[3] !== 'G'.charCodeAt(0)) {
+    // Check magic: MLSG
+    if (bytes[0] !== 0x4D || bytes[1] !== 0x4C ||
+        bytes[2] !== 0x53 || bytes[3] !== 0x47) {
         return null;
     }
 
+    // Check version
     const version = bytes[4];
     if (version !== VERSION) return null;
 
+    // Parse length
     const len = (bytes[5] << 24) | (bytes[6] << 16) | (bytes[7] << 8) | bytes[8];
-    if (bytes.length < 9 + len) return null;
+    if (len <= 0 || len > 1000000) return null; // Sanity check
+    if (bytes.length < 13 + len) return null;
 
-    const payload = bytes.slice(9, 9 + len);
+    // Parse stored CRC32
+    const storedCrc = ((bytes[9] << 24) | (bytes[10] << 16) |
+                       (bytes[11] << 8) | bytes[12]) >>> 0;
+
+    // Extract and verify payload
+    const payload = bytes.slice(13, 13 + len);
+    const computedCrc = crc32(payload);
+
+    if (storedCrc !== computedCrc) {
+        console.warn(`CRC mismatch: stored=${storedCrc.toString(16)}, computed=${computedCrc.toString(16)}`);
+        return null; // Corrupted frame
+    }
+
     return new TextDecoder().decode(payload);
 }
 
