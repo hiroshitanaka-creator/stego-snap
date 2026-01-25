@@ -139,11 +139,6 @@
             color: #888;
         }
 
-        .layer-card.lsb { --accent: #ff6b6b; }
-        .layer-card.prism { --accent: #feca57; }
-        .layer-card.noise { --accent: #48dbfb; }
-        .layer-card.adversarial { --accent: #ff9ff3; }
-
         .layer-card.active.lsb { border-color: #ff6b6b; background: rgba(255,107,107,0.1); }
         .layer-card.active.prism { border-color: #feca57; background: rgba(254,202,87,0.1); }
         .layer-card.active.noise { border-color: #48dbfb; background: rgba(72,219,251,0.1); }
@@ -177,6 +172,27 @@
 
         input[type="file"] {
             display: none;
+        }
+
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            color: #fff;
+            margin: 10px 0;
+        }
+
+        input[type="password"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #feca57;
+        }
+
+        input::placeholder {
+            color: #666;
         }
 
         textarea {
@@ -287,6 +303,10 @@
             border-left: 4px solid #e74c3c;
         }
 
+        .result-box.warning {
+            border-left: 4px solid #f39c12;
+        }
+
         .layer-result {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
@@ -310,6 +330,7 @@
 
         .layer-result .status.success { background: rgba(46,204,113,0.3); color: #2ecc71; }
         .layer-result .status.fail { background: rgba(231,76,60,0.3); color: #e74c3c; }
+        .layer-result .status.match { background: rgba(52,152,219,0.3); color: #3498db; }
 
         .decoded-message {
             background: rgba(0,0,0,0.3);
@@ -343,6 +364,84 @@
             border-radius: 0 10px 10px 0;
             margin: 20px 0;
             font-size: 0.9em;
+        }
+
+        .info-box.warning {
+            background: rgba(243, 156, 18, 0.1);
+            border-left-color: #f39c12;
+        }
+
+        .info-box.crypto {
+            background: rgba(46, 204, 113, 0.1);
+            border-left-color: #2ecc71;
+        }
+
+        /* Encryption section */
+        .encryption-section {
+            background: rgba(46, 204, 113, 0.05);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .encryption-section h4 {
+            color: #2ecc71;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .encryption-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #2ecc71;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
         }
 
         /* Footer */
@@ -396,13 +495,15 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 5px;
         }
 
         .progress-step {
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: #666;
         }
 
@@ -432,36 +533,57 @@
 <body>
     <div class="container">
         <h1>Multi-Layer Stego</h1>
-        <p class="subtitle">"三重の鎧、究極の防御" - The Ultimate Steganography Combo</p>
+        <p class="subtitle">"三重の鎧、鍵付きの扉" - The Ultimate Steganography Combo</p>
 
         <!-- Mode Switch -->
         <div class="mode-switch">
-            <button class="mode-btn active" onclick="switchMode('encode')">Encode</button>
-            <button class="mode-btn" onclick="switchMode('decode')">Decode</button>
+            <button class="mode-btn active" onclick="switchMode('encode', this)">Encode</button>
+            <button class="mode-btn" onclick="switchMode('decode', this)">Decode</button>
         </div>
 
         <!-- ENCODE SECTION -->
         <div id="encode-section" class="section active">
             <div class="info-box">
-                <strong>Multi-Layer Stego</strong> combines 3 steganography methods + adversarial noise for maximum AI resistance.
+                <strong>Multi-Layer Stego</strong> combines 3 steganography methods + AES-256-GCM encryption.
                 Each layer independently encodes your message - even if one layer is compromised, the others survive.
+            </div>
+
+            <div class="info-box warning">
+                <strong>Warning:</strong> LSB layer is destroyed by JPEG compression, image resizing, or SNS re-encoding.
+                Save as PNG and avoid uploading to social media if you need LSB data intact.
+            </div>
+
+            <!-- Encryption Section -->
+            <div class="encryption-section">
+                <h4>AES-256-GCM Encryption</h4>
+                <div class="encryption-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="encrypt-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Enable encryption (strongly recommended)</span>
+                </div>
+                <input type="password" id="passphrase" placeholder="Enter passphrase (min 8 characters)">
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">
+                    Without encryption, anyone who finds the stego can read it. With encryption, they need the passphrase.
+                </p>
             </div>
 
             <!-- Layer Selection -->
             <h3 style="text-align: center; margin: 20px 0;">Select Layers</h3>
             <div class="layer-selection">
                 <div class="layer-card lsb active" onclick="toggleLayer('lsb')">
-                    <div class="icon">Layer 1</div>
+                    <div class="icon">L1</div>
                     <h3>LSB Steganography</h3>
-                    <p>Hidden in pixel bits</p>
+                    <p>Hidden in pixel bits (fragile)</p>
                 </div>
                 <div class="layer-card prism active" onclick="toggleLayer('prism')">
-                    <div class="icon">Layer 2</div>
+                    <div class="icon">L2</div>
                     <h3>Prism Code</h3>
                     <p>UTF-16 color blocks</p>
                 </div>
                 <div class="layer-card noise active" onclick="toggleLayer('noise')">
-                    <div class="icon">Layer 3</div>
+                    <div class="icon">L3</div>
                     <h3>Noise Grid</h3>
                     <p>Binary pixel grid</p>
                 </div>
@@ -474,11 +596,11 @@
 
             <!-- Image Upload -->
             <div class="upload-area" id="encode-upload-area">
-                <div class="icon">Upload Image</div>
+                <div class="icon">Upload</div>
                 <p>Drag & drop or click to upload base image</p>
-                <p style="color: #666; font-size: 0.8em;">PNG recommended for best quality</p>
+                <p style="color: #666; font-size: 0.8em;">PNG only - JPEG will destroy LSB data!</p>
             </div>
-            <input type="file" id="encode-upload" accept="image/*">
+            <input type="file" id="encode-upload" accept="image/png">
 
             <div id="encode-preview" class="preview-container" style="display: none;">
                 <div class="preview-box">
@@ -493,10 +615,11 @@
             <!-- Progress -->
             <div class="progress-container" id="encode-progress">
                 <div class="progress-steps">
-                    <span class="progress-step" id="step-lsb">Layer 1: LSB</span>
-                    <span class="progress-step" id="step-prism">Layer 2: Prism</span>
-                    <span class="progress-step" id="step-noise">Layer 3: Noise</span>
-                    <span class="progress-step" id="step-adversarial">Adversarial</span>
+                    <span class="progress-step" id="step-crypto">Encrypt</span>
+                    <span class="progress-step" id="step-lsb">LSB</span>
+                    <span class="progress-step" id="step-prism">Prism</span>
+                    <span class="progress-step" id="step-noise">Noise</span>
+                    <span class="progress-step" id="step-adversarial">Shield</span>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
@@ -515,12 +638,18 @@
         <div id="decode-section" class="section">
             <div class="info-box">
                 Upload a Multi-Layer Stego image to decode. The system will attempt to extract data from all layers
-                and use majority voting for maximum accuracy.
+                and use <strong>true majority voting</strong> (2/3 agreement) for maximum accuracy.
+            </div>
+
+            <!-- Decryption -->
+            <div class="encryption-section">
+                <h4>Decryption</h4>
+                <input type="password" id="decode-passphrase" placeholder="Enter passphrase (leave empty if not encrypted)">
             </div>
 
             <!-- Image Upload -->
             <div class="upload-area" id="decode-upload-area">
-                <div class="icon">Upload Encoded Image</div>
+                <div class="icon">Upload</div>
                 <p>Drag & drop or click to upload stego image</p>
             </div>
             <input type="file" id="decode-upload" accept="image/*">
@@ -561,11 +690,26 @@
 
 <script>
 // =============================================================================
+// CONSTANTS & MAGIC
+// =============================================================================
+const MAGIC = 'MLSG'; // Multi-Layer SteGo
+const VERSION = 1;
+
+// Prism color palette
+const hexPalette = {
+    '0': '#000000', '1': '#FF0000', '2': '#00FF00', '3': '#0000FF',
+    '4': '#FFFF00', '5': '#00FFFF', '6': '#FF00FF', '7': '#C0C0C0',
+    '8': '#808080', '9': '#800000', 'a': '#808000', 'b': '#008000',
+    'c': '#800080', 'd': '#008080', 'e': '#000080', 'f': '#FFFFFF'
+};
+
+// =============================================================================
 // GLOBAL STATE
 // =============================================================================
 let currentMode = 'encode';
 let currentImage = null;
 let decodeImage = null;
+let imageRegion = null; // Store LSB region for decode
 
 const layers = {
     lsb: true,
@@ -574,27 +718,133 @@ const layers = {
     adversarial: true
 };
 
-// Prism color palette (same as prism.html)
-const hexPalette = {
-    '0': '#000000', '1': '#FF0000', '2': '#00FF00', '3': '#0000FF',
-    '4': '#FFFF00', '5': '#00FFFF', '6': '#FF00FF', '7': '#C0C0C0',
-    '8': '#808080', '9': '#800000', 'a': '#808000', 'b': '#008000',
-    'c': '#800080', 'd': '#008080', 'e': '#000080', 'f': '#FFFFFF'
-};
+// =============================================================================
+// AES-256-GCM ENCRYPTION (WebCrypto)
+// =============================================================================
+async function deriveKey(passphrase, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(passphrase),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
 
-// Reverse palette for decoding
-const reversePalette = {};
-Object.keys(hexPalette).forEach(key => {
-    reversePalette[hexPalette[key].toUpperCase()] = key;
-});
+async function encryptMessage(plaintext, passphrase) {
+    const enc = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(passphrase, salt);
+
+    const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        enc.encode(plaintext)
+    );
+
+    // Combine: salt (16) + iv (12) + ciphertext
+    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    combined.set(salt, 0);
+    combined.set(iv, salt.length);
+    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+
+    return btoa(String.fromCharCode(...combined));
+}
+
+async function decryptMessage(ciphertextB64, passphrase) {
+    try {
+        const combined = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
+
+        const salt = combined.slice(0, 16);
+        const iv = combined.slice(16, 28);
+        const ciphertext = combined.slice(28);
+
+        const key = await deriveKey(passphrase, salt);
+
+        const decrypted = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: iv },
+            key,
+            ciphertext
+        );
+
+        return new TextDecoder().decode(decrypted);
+    } catch (e) {
+        return null; // Decryption failed
+    }
+}
 
 // =============================================================================
-// MODE & LAYER TOGGLE
+// FRAMING PROTOCOL
 // =============================================================================
-function switchMode(mode) {
+function createFrame(payload) {
+    // MLSG + version(1byte) + length(4bytes, big-endian) + payload
+    const payloadBytes = new TextEncoder().encode(payload);
+    const frame = new Uint8Array(4 + 1 + 4 + payloadBytes.length);
+
+    // Magic
+    frame[0] = 'M'.charCodeAt(0);
+    frame[1] = 'L'.charCodeAt(0);
+    frame[2] = 'S'.charCodeAt(0);
+    frame[3] = 'G'.charCodeAt(0);
+
+    // Version
+    frame[4] = VERSION;
+
+    // Length (big-endian)
+    const len = payloadBytes.length;
+    frame[5] = (len >> 24) & 0xff;
+    frame[6] = (len >> 16) & 0xff;
+    frame[7] = (len >> 8) & 0xff;
+    frame[8] = len & 0xff;
+
+    // Payload
+    frame.set(payloadBytes, 9);
+
+    return frame;
+}
+
+function parseFrame(bytes) {
+    if (bytes.length < 9) return null;
+
+    // Check magic
+    if (bytes[0] !== 'M'.charCodeAt(0) ||
+        bytes[1] !== 'L'.charCodeAt(0) ||
+        bytes[2] !== 'S'.charCodeAt(0) ||
+        bytes[3] !== 'G'.charCodeAt(0)) {
+        return null;
+    }
+
+    const version = bytes[4];
+    if (version !== VERSION) return null;
+
+    const len = (bytes[5] << 24) | (bytes[6] << 16) | (bytes[7] << 8) | bytes[8];
+    if (bytes.length < 9 + len) return null;
+
+    const payload = bytes.slice(9, 9 + len);
+    return new TextDecoder().decode(payload);
+}
+
+// =============================================================================
+// MODE & LAYER TOGGLE (FIXED: no event dependency)
+// =============================================================================
+function switchMode(mode, btn) {
     currentMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(mode + '-section').classList.add('active');
 }
@@ -674,9 +924,9 @@ function handleDecodeUpload(file) {
 }
 
 // =============================================================================
-// ENCODING FUNCTIONS
+// ENCODING
 // =============================================================================
-function encodeMultiLayer() {
+async function encodeMultiLayer() {
     const message = document.getElementById('secret-message').value;
     if (!message) {
         showError('encode', 'Please enter a secret message!');
@@ -687,51 +937,68 @@ function encodeMultiLayer() {
         return;
     }
 
+    const useEncryption = document.getElementById('encrypt-toggle').checked;
+    const passphrase = document.getElementById('passphrase').value;
+
+    if (useEncryption && passphrase.length < 8) {
+        showError('encode', 'Passphrase must be at least 8 characters!');
+        return;
+    }
+
     // Show progress
     const progress = document.getElementById('encode-progress');
     progress.classList.add('active');
     updateProgress(0);
 
     try {
+        // Step 1: Encrypt if enabled
+        updateStep('step-crypto', 'active');
+        let payload = message;
+        if (useEncryption) {
+            payload = await encryptMessage(message, passphrase);
+        }
+        updateStep('step-crypto', 'done');
+        updateProgress(10);
+
+        // Create framed data
+        const framedData = createFrame(payload);
+
         const canvas = document.getElementById('workCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Calculate required dimensions
-        const minWidth = 600;
-        const minHeight = 400;
-
-        // Noise grid calculations
+        // Calculate dimensions
+        // Noise grid
         let noiseBinary = '';
-        for (let i = 0; i < message.length; i++) {
-            noiseBinary += message.charCodeAt(i).toString(2).padStart(8, '0');
+        for (const byte of framedData) {
+            noiseBinary += byte.toString(2).padStart(8, '0');
         }
         const noiseColumns = Math.ceil(Math.sqrt(noiseBinary.length));
         const noiseRows = Math.ceil(noiseBinary.length / noiseColumns);
         const noisePixelSize = 20;
         const noiseWidth = noiseColumns * noisePixelSize + 40;
-        const noiseHeight = noiseRows * noisePixelSize + 60;
+        const noiseHeight = noiseRows * noisePixelSize + 70;
 
-        // Prism grid calculations
+        // Prism grid (hex encoding of framed data)
         let prismHex = '';
-        for (let i = 0; i < message.length; i++) {
-            prismHex += message.charCodeAt(i).toString(16).padStart(4, '0');
+        for (const byte of framedData) {
+            prismHex += byte.toString(16).padStart(2, '0');
         }
-        const prismColumns = Math.ceil(Math.sqrt(prismHex.length * 2));
+        const prismColumns = Math.ceil(Math.sqrt(prismHex.length));
         const prismRows = Math.ceil(prismHex.length / prismColumns);
         const prismPixelSize = 25;
         const prismWidth = prismColumns * prismPixelSize + 40;
-        const prismHeight = prismRows * prismPixelSize + 50;
+        const prismHeight = prismRows * prismPixelSize + 70;
 
-        // Calculate final canvas size
-        const totalWidth = Math.max(currentImage.width, minWidth, noiseWidth, prismWidth);
+        // Canvas size
+        const totalWidth = Math.max(currentImage.width, 600, noiseWidth, prismWidth);
         const headerHeight = layers.noise ? noiseHeight : 0;
         const prismStripHeight = layers.prism ? prismHeight : 0;
-        const totalHeight = currentImage.height + headerHeight + prismStripHeight + 40;
+        const totalHeight = currentImage.height + headerHeight + prismStripHeight + 50;
 
         canvas.width = totalWidth;
         canvas.height = totalHeight;
 
-        // Fill background
+        // Background
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -743,17 +1010,16 @@ function encodeMultiLayer() {
 
             const noiseStartX = (canvas.width - noiseWidth) / 2;
 
-            // Background for noise section
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(0, currentY, canvas.width, noiseHeight);
 
-            // Header
+            // Header with metadata
             ctx.fillStyle = '#ff6b6b';
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText(`LAYER 3: NOISE GRID [${noiseColumns} x ${noiseRows}]`, canvas.width / 2, currentY + 25);
+            ctx.fillText(`MLSG:v${VERSION}:NOISE [${noiseColumns}x${noiseRows}] bytes:${framedData.length}`, canvas.width / 2, currentY + 20);
 
-            // Separator line
+            // Separator
             ctx.strokeStyle = '#ff6b6b';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -761,13 +1027,13 @@ function encodeMultiLayer() {
             ctx.lineTo(canvas.width - 20, currentY + 35);
             ctx.stroke();
 
-            // Draw noise grid
+            // Draw grid
             for (let i = 0; i < noiseBinary.length; i++) {
                 const bit = noiseBinary[i];
                 const col = i % noiseColumns;
                 const row = Math.floor(i / noiseColumns);
                 const x = noiseStartX + 20 + col * noisePixelSize;
-                const y = currentY + 45 + row * noisePixelSize;
+                const y = currentY + 50 + row * noisePixelSize;
 
                 ctx.fillStyle = bit === '1' ? '#000000' : '#eeeeee';
                 ctx.fillRect(x, y, noisePixelSize - 2, noisePixelSize - 2);
@@ -776,7 +1042,7 @@ function encodeMultiLayer() {
             currentY += noiseHeight;
             updateStep('step-noise', 'done');
         }
-        updateProgress(25);
+        updateProgress(30);
 
         // ==================== LAYER 2: PRISM COLORS ====================
         if (layers.prism) {
@@ -784,17 +1050,16 @@ function encodeMultiLayer() {
 
             const prismStartX = (canvas.width - prismWidth) / 2;
 
-            // Background for prism section
             ctx.fillStyle = '#1a1a1a';
             ctx.fillRect(0, currentY, canvas.width, prismHeight);
 
             // Header
             ctx.fillStyle = '#feca57';
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText(`LAYER 2: PRISM CODE [${prismHex.length} hex]`, canvas.width / 2, currentY + 25);
+            ctx.fillText(`MLSG:v${VERSION}:PRISM [${prismColumns}x${prismRows}] hex:${prismHex.length}`, canvas.width / 2, currentY + 20);
 
-            // Separator line
+            // Separator
             ctx.strokeStyle = '#feca57';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -802,14 +1067,14 @@ function encodeMultiLayer() {
             ctx.lineTo(canvas.width - 20, currentY + 35);
             ctx.stroke();
 
-            // Draw prism blocks
+            // Draw blocks
             for (let i = 0; i < prismHex.length; i++) {
                 const hexDigit = prismHex[i];
                 const color = hexPalette[hexDigit];
                 const col = i % prismColumns;
                 const row = Math.floor(i / prismColumns);
                 const x = prismStartX + 20 + col * prismPixelSize;
-                const y = currentY + 45 + row * prismPixelSize;
+                const y = currentY + 50 + row * prismPixelSize;
 
                 ctx.fillStyle = color;
                 ctx.fillRect(x + 1, y + 1, prismPixelSize - 2, prismPixelSize - 2);
@@ -820,27 +1085,32 @@ function encodeMultiLayer() {
         }
         updateProgress(50);
 
-        // ==================== LAYER 1: LSB (BASE IMAGE) ====================
+        // ==================== LAYER 1: LSB ====================
         updateStep('step-lsb', 'active');
 
-        // Draw the base image
-        const imageStartY = currentY + 20;
-        const imageX = (canvas.width - currentImage.width) / 2;
+        const imageStartY = currentY + 25;
+        const imageX = Math.floor((canvas.width - currentImage.width) / 2);
+
+        // Draw label
+        ctx.fillStyle = '#48dbfb';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`MLSG:v${VERSION}:LSB [${currentImage.width}x${currentImage.height}] @ (${imageX},${imageStartY})`, canvas.width / 2, currentY + 15);
+
+        // Draw image
         ctx.drawImage(currentImage, imageX, imageStartY);
 
         if (layers.lsb) {
-            // Get image data for LSB encoding
             const imageData = ctx.getImageData(imageX, imageStartY, currentImage.width, currentImage.height);
             const data = imageData.data;
 
-            // Convert message to binary (UTF-16)
+            // Convert framed data to binary
             let binary = '';
-            for (let i = 0; i < message.length; i++) {
-                binary += message.charCodeAt(i).toString(2).padStart(16, '0');
+            for (const byte of framedData) {
+                binary += byte.toString(2).padStart(8, '0');
             }
-            binary += '0000000000000000'; // Null terminator
 
-            // Check capacity
+            // Check capacity (RGB only, skip alpha)
             const maxBits = (data.length / 4) * 3;
             if (binary.length > maxBits) {
                 showError('encode', 'Message too long for this image!');
@@ -848,20 +1118,20 @@ function encodeMultiLayer() {
                 return;
             }
 
-            // Embed in LSB
+            // Embed in LSB (RGB only, skip alpha channel)
             for (let i = 0; i < binary.length; i++) {
                 const secretBit = parseInt(binary[i]);
-                data[i] = (data[i] & 254) | secretBit;
+                const pixel = Math.floor(i / 3);
+                const channel = i % 3; // 0:R, 1:G, 2:B
+                const idx = pixel * 4 + channel;
+
+                if (idx < data.length) {
+                    data[idx] = (data[idx] & 254) | secretBit;
+                }
             }
 
             ctx.putImageData(imageData, imageX, imageStartY);
         }
-
-        // Add label for image section
-        ctx.fillStyle = '#48dbfb';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('LAYER 1: LSB STEGANOGRAPHY (invisible)', canvas.width / 2, currentY + 12);
 
         updateStep('step-lsb', 'done');
         updateProgress(75);
@@ -874,7 +1144,7 @@ function encodeMultiLayer() {
         }
         updateProgress(100);
 
-        // ==================== OUTPUT ====================
+        // Output
         setTimeout(() => {
             canvas.toBlob(function(blob) {
                 const url = URL.createObjectURL(blob);
@@ -884,18 +1154,22 @@ function encodeMultiLayer() {
                     <div class="result-box success">
                         <h3 style="margin-bottom: 15px;">Encoding Complete!</h3>
                         <p><strong>Message:</strong> ${message.length} characters</p>
+                        <p><strong>Encrypted:</strong> ${useEncryption ? 'Yes (AES-256-GCM)' : 'No'}</p>
                         <p><strong>Active Layers:</strong> ${activeLayers}</p>
                         <p><strong>Image Size:</strong> ${canvas.width} x ${canvas.height}</p>
-                        <p style="margin-top: 15px; color: #888;">Tip: Long-press to save on mobile</p>
+                        <div class="info-box warning" style="margin: 15px 0;">
+                            <strong>Important:</strong> Save as PNG only! JPEG/WebP will destroy LSB data.
+                            Do NOT upload to SNS (Twitter, Instagram, etc.) - they re-compress images.
+                        </div>
                         <a href="${url}" download="multi-layer-stego.png" class="btn" style="display: inline-block; width: auto; padding: 12px 30px; text-decoration: none; margin-top: 15px;">
-                            Download Stego Image
+                            Download PNG
                         </a>
                     </div>
                 `;
 
                 progress.classList.remove('active');
             }, 'image/png');
-        }, 500);
+        }, 300);
 
     } catch (error) {
         showError('encode', 'Error: ' + error.message);
@@ -903,35 +1177,28 @@ function encodeMultiLayer() {
     }
 }
 
-// Add adversarial noise patterns
 function addAdversarialNoise(ctx, width, height, imgX, imgY, imgW, imgH) {
-    // 1. Random noise dots (outside main image area)
-    for (let i = 0; i < 500; i++) {
+    // Random dots
+    for (let i = 0; i < 300; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-
-        // Skip if inside main image
         if (x >= imgX && x <= imgX + imgW && y >= imgY && y <= imgY + imgH) continue;
 
         const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#1dd1a1'];
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-        ctx.globalAlpha = 0.1 + Math.random() * 0.2;
+        ctx.globalAlpha = 0.1 + Math.random() * 0.15;
         ctx.fillRect(x, y, 2, 2);
     }
     ctx.globalAlpha = 1;
 
-    // 2. Spiral patterns (high frequency noise for AI confusion)
-    const spiralCenters = [
-        { x: 50, y: height - 50 },
-        { x: width - 50, y: height - 50 }
-    ];
-
+    // Spirals
+    const spiralCenters = [{ x: 40, y: height - 40 }, { x: width - 40, y: height - 40 }];
     for (const center of spiralCenters) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        for (let angle = 0; angle < 20 * Math.PI; angle += 0.1) {
-            const r = angle * 2;
+        for (let angle = 0; angle < 15 * Math.PI; angle += 0.1) {
+            const r = angle * 1.5;
             const x = center.x + r * Math.cos(angle);
             const y = center.y + r * Math.sin(angle);
             if (angle === 0) ctx.moveTo(x, y);
@@ -940,35 +1207,28 @@ function addAdversarialNoise(ctx, width, height, imgX, imgY, imgW, imgH) {
         ctx.stroke();
     }
 
-    // 3. Fake decoy patterns (random colored blocks that look like prism)
-    const decoyCount = 10;
-    for (let i = 0; i < decoyCount; i++) {
-        const x = Math.random() * (width - 100);
-        const y = height - 30 + Math.random() * 20;
+    // Decoy blocks
+    for (let i = 0; i < 8; i++) {
+        const x = Math.random() * (width - 80);
+        const y = height - 25 + Math.random() * 15;
         const color = Object.values(hexPalette)[Math.floor(Math.random() * 16)];
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.3;
-        ctx.fillRect(x, y, 15, 15);
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(x, y, 12, 12);
     }
     ctx.globalAlpha = 1;
-
-    // 4. Gradient overlay on edges
-    const gradient = ctx.createLinearGradient(0, 0, width, 0);
-    gradient.addColorStop(0, 'rgba(102, 126, 234, 0.05)');
-    gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(1, 'rgba(118, 75, 162, 0.05)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
 }
 
 // =============================================================================
-// DECODING FUNCTIONS
+// DECODING
 // =============================================================================
-function decodeMultiLayer() {
+async function decodeMultiLayer() {
     if (!decodeImage) {
         showError('decode', 'Please upload an image first!');
         return;
     }
+
+    const passphrase = document.getElementById('decode-passphrase').value;
 
     const canvas = document.getElementById('workCanvas');
     const ctx = canvas.getContext('2d');
@@ -977,109 +1237,191 @@ function decodeMultiLayer() {
     ctx.drawImage(decodeImage, 0, 0);
 
     const results = {
-        lsb: { success: false, message: '', confidence: 0 },
-        prism: { success: false, message: '', confidence: 0 },
-        noise: { success: false, message: '', confidence: 0 }
+        lsb: { success: false, message: '', confidence: 0, raw: null },
+        prism: { success: false, message: '', confidence: 0, raw: null },
+        noise: { success: false, message: '', confidence: 0, raw: null }
     };
 
-    // ==================== DECODE LAYER 1: LSB ====================
-    try {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
+    // Decode all layers
+    results.noise = decodeNoiseLayer(ctx, canvas.width, canvas.height);
+    results.prism = decodePrismLayer(ctx, canvas.width, canvas.height);
+    results.lsb = await decodeLSBLayer(ctx, canvas.width, canvas.height);
 
-        let binary = '';
-        let message = '';
-
-        for (let i = 0; i < data.length && binary.length < 100000; i++) {
-            const bit = data[i] & 1;
-            binary += bit;
-
-            if (binary.length === 16) {
-                const charCode = parseInt(binary, 2);
-                if (charCode === 0) break;
-                if (charCode >= 32 && charCode < 65536) {
-                    message += String.fromCharCode(charCode);
+    // Try decryption if passphrase provided
+    if (passphrase) {
+        for (const layer of ['lsb', 'prism', 'noise']) {
+            if (results[layer].raw) {
+                const decrypted = await decryptMessage(results[layer].raw, passphrase);
+                if (decrypted) {
+                    results[layer].message = decrypted;
+                    results[layer].confidence += 20;
                 }
-                binary = '';
             }
         }
-
-        if (message.length > 0 && isPrintable(message)) {
-            results.lsb.success = true;
-            results.lsb.message = message;
-            results.lsb.confidence = calculateConfidence(message);
-        }
-    } catch (e) {
-        console.error('LSB decode error:', e);
     }
 
-    // ==================== DECODE LAYER 2: PRISM ====================
-    try {
-        const prismResult = decodePrismFromImage(ctx, canvas.width, canvas.height);
-        if (prismResult) {
-            results.prism.success = true;
-            results.prism.message = prismResult.message;
-            results.prism.confidence = prismResult.confidence;
-        }
-    } catch (e) {
-        console.error('Prism decode error:', e);
-    }
+    // True majority voting
+    const votingResult = majorityVote(results);
 
-    // ==================== DECODE LAYER 3: NOISE ====================
-    try {
-        const noiseResult = decodeNoiseFromImage(ctx, canvas.width, canvas.height);
-        if (noiseResult) {
-            results.noise.success = true;
-            results.noise.message = noiseResult.message;
-            results.noise.confidence = noiseResult.confidence;
-        }
-    } catch (e) {
-        console.error('Noise decode error:', e);
-    }
-
-    // ==================== DISPLAY RESULTS ====================
-    displayDecodeResults(results);
+    displayDecodeResults(results, votingResult, passphrase);
 }
 
-// Decode Prism layer
-function decodePrismFromImage(ctx, width, height) {
-    // Look for prism header
-    const scanHeight = Math.min(height, 300);
+function majorityVote(results) {
+    const messages = [];
+
+    for (const [layer, result] of Object.entries(results)) {
+        if (result.success && result.message) {
+            messages.push({ layer, message: result.message, confidence: result.confidence });
+        }
+    }
+
+    if (messages.length === 0) {
+        return { final: null, method: 'none', matches: 0 };
+    }
+
+    if (messages.length === 1) {
+        return { final: messages[0].message, method: 'single', matches: 1 };
+    }
+
+    // Check for 2/3 or 3/3 agreement
+    const m0 = messages[0]?.message;
+    const m1 = messages[1]?.message;
+    const m2 = messages[2]?.message;
+
+    // Check exact matches
+    if (m0 === m1 && m1 === m2 && m0) {
+        return { final: m0, method: '3/3 unanimous', matches: 3 };
+    }
+
+    if (m0 === m1 && m0) {
+        return { final: m0, method: '2/3 majority', matches: 2, matchedLayers: [messages[0].layer, messages[1].layer] };
+    }
+
+    if (m0 === m2 && m0) {
+        return { final: m0, method: '2/3 majority', matches: 2, matchedLayers: [messages[0].layer, messages[2].layer] };
+    }
+
+    if (m1 === m2 && m1) {
+        return { final: m1, method: '2/3 majority', matches: 2, matchedLayers: [messages[1].layer, messages[2].layer] };
+    }
+
+    // No agreement - return highest confidence with warning
+    messages.sort((a, b) => b.confidence - a.confidence);
+    return { final: messages[0].message, method: 'conflict (highest confidence)', matches: 1, conflict: true };
+}
+
+function decodeNoiseLayer(ctx, width, height) {
+    const result = { success: false, message: '', confidence: 0, raw: null };
+
+    // Scan for MLSG:v1:NOISE header
+    const scanHeight = Math.min(height, 500);
     const imageData = ctx.getImageData(0, 0, width, scanHeight);
 
-    // Find yellow line (prism separator)
+    // Find red separator line
+    let noiseStartY = -1;
+    let gridCols = 0, gridRows = 0;
+
+    for (let y = 0; y < scanHeight - 1; y++) {
+        let redCount = 0;
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = imageData.data[idx];
+            const g = imageData.data[idx + 1];
+            const b = imageData.data[idx + 2];
+            if (r > 200 && g < 120 && b < 120) redCount++;
+        }
+        if (redCount > width * 0.4) {
+            noiseStartY = y + 10;
+            break;
+        }
+    }
+
+    if (noiseStartY === -1) return result;
+
+    // Extract binary data
+    const blockSize = 20;
+    let binary = '';
+    const maxBits = 50000;
+
+    // Estimate grid from image
+    const gridStartX = 30;
+    const gridEndX = width - 30;
+    const estimatedCols = Math.floor((gridEndX - gridStartX) / blockSize);
+
+    for (let i = 0; i < maxBits; i++) {
+        const col = i % estimatedCols;
+        const row = Math.floor(i / estimatedCols);
+
+        const x = Math.floor(gridStartX + col * blockSize + blockSize / 2);
+        const y = Math.floor(noiseStartY + row * blockSize + blockSize / 2);
+
+        if (y >= scanHeight) break;
+
+        const idx = (y * width + x) * 4;
+        const r = imageData.data[idx];
+        const g = imageData.data[idx + 1];
+        const b = imageData.data[idx + 2];
+
+        const brightness = (r + g + b) / 3;
+        binary += brightness < 128 ? '1' : '0';
+    }
+
+    // Convert to bytes and parse frame
+    const bytes = [];
+    for (let i = 0; i < binary.length - 7; i += 8) {
+        bytes.push(parseInt(binary.substr(i, 8), 2));
+    }
+
+    const payload = parseFrame(new Uint8Array(bytes));
+    if (payload) {
+        result.success = true;
+        result.raw = payload;
+        result.message = payload;
+        result.confidence = 70;
+    }
+
+    return result;
+}
+
+function decodePrismLayer(ctx, width, height) {
+    const result = { success: false, message: '', confidence: 0, raw: null };
+
+    const scanHeight = Math.min(height, 500);
+    const imageData = ctx.getImageData(0, 0, width, scanHeight);
+
+    // Find yellow separator
     let prismStartY = -1;
-    for (let y = 0; y < scanHeight; y++) {
+    for (let y = 0; y < scanHeight - 1; y++) {
         let yellowCount = 0;
         for (let x = 0; x < width; x++) {
             const idx = (y * width + x) * 4;
             const r = imageData.data[idx];
             const g = imageData.data[idx + 1];
             const b = imageData.data[idx + 2];
-            if (r > 200 && g > 180 && b < 100) yellowCount++;
+            if (r > 200 && g > 160 && b < 120) yellowCount++;
         }
-        if (yellowCount > width * 0.3) {
-            prismStartY = y + 5;
+        if (yellowCount > width * 0.4) {
+            prismStartY = y + 10;
             break;
         }
     }
 
-    if (prismStartY === -1) return null;
+    if (prismStartY === -1) return result;
 
-    // Sample colors from the grid
     const blockSize = 25;
-    const padding = 20;
-    const startX = padding + (width - (Math.floor((width - 2 * padding) / blockSize) * blockSize)) / 2;
+    const gridStartX = 30;
+    const gridEndX = width - 30;
+    const estimatedCols = Math.floor((gridEndX - gridStartX) / blockSize);
 
     let hexString = '';
-    const maxBlocks = 500;
+    const maxBlocks = 5000;
 
     for (let i = 0; i < maxBlocks; i++) {
-        const col = i % Math.floor((width - 2 * padding) / blockSize);
-        const row = Math.floor(i / Math.floor((width - 2 * padding) / blockSize));
+        const col = i % estimatedCols;
+        const row = Math.floor(i / estimatedCols);
 
-        const x = Math.floor(startX + col * blockSize + blockSize / 2);
-        const y = Math.floor(prismStartY + 10 + row * blockSize + blockSize / 2);
+        const x = Math.floor(gridStartX + col * blockSize + blockSize / 2);
+        const y = Math.floor(prismStartY + row * blockSize + blockSize / 2);
 
         if (y >= scanHeight) break;
 
@@ -1094,86 +1436,83 @@ function decodePrismFromImage(ctx, width, height) {
         }
     }
 
-    // Convert hex to text (4 hex digits = 1 character)
-    let message = '';
-    for (let i = 0; i < hexString.length - 3; i += 4) {
-        const charCode = parseInt(hexString.substr(i, 4), 16);
-        if (charCode > 0 && charCode < 65536) {
-            message += String.fromCharCode(charCode);
-        }
+    // Convert hex to bytes
+    const bytes = [];
+    for (let i = 0; i < hexString.length - 1; i += 2) {
+        bytes.push(parseInt(hexString.substr(i, 2), 16));
     }
 
-    if (message.length > 0 && isPrintable(message)) {
-        return { message, confidence: 70 };
+    const payload = parseFrame(new Uint8Array(bytes));
+    if (payload) {
+        result.success = true;
+        result.raw = payload;
+        result.message = payload;
+        result.confidence = 65;
     }
-    return null;
+
+    return result;
 }
 
-// Decode Noise layer
-function decodeNoiseFromImage(ctx, width, height) {
-    const scanHeight = Math.min(height, 200);
-    const imageData = ctx.getImageData(0, 0, width, scanHeight);
+async function decodeLSBLayer(ctx, width, height) {
+    const result = { success: false, message: '', confidence: 0, raw: null };
 
-    // Look for red line (noise separator)
-    let noiseStartY = -1;
-    for (let y = 0; y < scanHeight; y++) {
-        let redCount = 0;
+    // Find cyan "LSB" label to locate image region
+    const scanStart = Math.min(height, 300);
+    let lsbLabelY = -1;
+
+    const headerData = ctx.getImageData(0, 0, width, scanStart);
+
+    // Look for cyan horizontal line or text
+    for (let y = 50; y < scanStart; y++) {
+        let cyanCount = 0;
         for (let x = 0; x < width; x++) {
             const idx = (y * width + x) * 4;
-            const r = imageData.data[idx];
-            const g = imageData.data[idx + 1];
-            const b = imageData.data[idx + 2];
-            if (r > 200 && g < 100 && b < 100) redCount++;
+            const r = headerData.data[idx];
+            const g = headerData.data[idx + 1];
+            const b = headerData.data[idx + 2];
+            if (r < 100 && g > 180 && b > 200) cyanCount++;
         }
-        if (redCount > width * 0.3) {
-            noiseStartY = y + 5;
+        if (cyanCount > 10) {
+            lsbLabelY = y;
             break;
         }
     }
 
-    if (noiseStartY === -1) return null;
+    // Image likely starts ~15px after label
+    const imageStartY = lsbLabelY > 0 ? lsbLabelY + 15 : Math.floor(height * 0.4);
 
-    // Sample black/white pixels
-    const blockSize = 20;
-    const padding = 20;
+    // Read from detected region
+    const imageData = ctx.getImageData(0, imageStartY, width, height - imageStartY);
+    const data = imageData.data;
 
+    // Extract bits from RGB only (skip alpha)
     let binary = '';
-    const maxBlocks = 500;
+    const maxBits = 100000;
 
-    for (let i = 0; i < maxBlocks; i++) {
-        const col = i % Math.floor((width - 2 * padding) / blockSize);
-        const row = Math.floor(i / Math.floor((width - 2 * padding) / blockSize));
-
-        const x = Math.floor(padding + col * blockSize + blockSize / 2);
-        const y = Math.floor(noiseStartY + 10 + row * blockSize + blockSize / 2);
-
-        if (y >= scanHeight) break;
-
-        const idx = (y * width + x) * 4;
-        const r = imageData.data[idx];
-        const g = imageData.data[idx + 1];
-        const b = imageData.data[idx + 2];
-
-        const brightness = (r + g + b) / 3;
-        binary += brightness < 128 ? '1' : '0';
-    }
-
-    // Convert binary to ASCII (8 bits per char)
-    let message = '';
-    for (let i = 0; i < binary.length - 7; i += 8) {
-        const charCode = parseInt(binary.substr(i, 8), 2);
-        if (charCode > 0 && charCode < 128) {
-            message += String.fromCharCode(charCode);
+    for (let pixel = 0; pixel < data.length / 4 && binary.length < maxBits; pixel++) {
+        for (let channel = 0; channel < 3; channel++) {
+            const idx = pixel * 4 + channel;
+            binary += data[idx] & 1;
         }
     }
 
-    if (message.length > 0 && isPrintable(message)) {
-        return { message, confidence: 65 };
+    // Convert to bytes
+    const bytes = [];
+    for (let i = 0; i < binary.length - 7; i += 8) {
+        bytes.push(parseInt(binary.substr(i, 8), 2));
     }
-    return null;
+
+    const payload = parseFrame(new Uint8Array(bytes));
+    if (payload) {
+        result.success = true;
+        result.raw = payload;
+        result.message = payload;
+        result.confidence = 75;
+    }
+
+    return result;
 }
 
-// Helper: Find closest hex color
 function findClosestHexColor(r, g, b) {
     const colors = {
         '0': [0, 0, 0], '1': [255, 0, 0], '2': [0, 255, 0], '3': [0, 0, 255],
@@ -1186,98 +1525,76 @@ function findClosestHexColor(r, g, b) {
     let closest = null;
 
     for (const [hex, [cr, cg, cb]] of Object.entries(colors)) {
-        const dist = Math.sqrt(Math.pow(r - cr, 2) + Math.pow(g - cg, 2) + Math.pow(b - cb, 2));
+        const dist = Math.sqrt((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2);
         if (dist < minDist) {
             minDist = dist;
             closest = hex;
         }
     }
 
-    return minDist < 100 ? closest : null;
+    return minDist < 80 ? closest : null;
 }
 
-// Helper: Check if string is printable
-function isPrintable(str) {
-    if (!str || str.length === 0) return false;
-    let printableCount = 0;
-    for (const char of str) {
-        const code = char.charCodeAt(0);
-        if ((code >= 32 && code < 127) || code > 127) printableCount++;
-    }
-    return printableCount / str.length > 0.7;
-}
-
-// Helper: Calculate confidence
-function calculateConfidence(message) {
-    if (!message) return 0;
-    let score = 50;
-
-    // Longer messages = higher confidence (up to a point)
-    score += Math.min(message.length * 2, 30);
-
-    // Check for common patterns
-    if (/[a-zA-Z]/.test(message)) score += 10;
-    if (/\s/.test(message)) score += 10;
-
-    return Math.min(score, 95);
-}
-
-// Display decode results
-function displayDecodeResults(results) {
+function displayDecodeResults(results, votingResult, passphrase) {
     const successCount = Object.values(results).filter(r => r.success).length;
 
-    // Majority voting
-    let finalMessage = '';
-    let highestConfidence = 0;
-
-    for (const [layer, result] of Object.entries(results)) {
-        if (result.success && result.confidence > highestConfidence) {
-            finalMessage = result.message;
-            highestConfidence = result.confidence;
-        }
-    }
-
-    let html = `<div class="result-box ${successCount > 0 ? 'success' : 'error'}">`;
+    let html = `<div class="result-box ${successCount > 0 ? (votingResult.conflict ? 'warning' : 'success') : 'error'}">`;
 
     if (successCount > 0) {
-        html += `
-            <h3 style="margin-bottom: 15px;">Decoding Results</h3>
-            <p><strong>Layers Decoded:</strong> ${successCount}/3</p>
-            <p><strong>Highest Confidence:</strong> ${highestConfidence}%</p>
-            <div class="decoded-message" style="font-size: 1.2em; margin: 15px 0; padding: 20px;">
-                ${escapeHtml(finalMessage)}
-            </div>
-        `;
+        html += `<h3 style="margin-bottom: 15px;">Decoding Results</h3>`;
+        html += `<p><strong>Layers Decoded:</strong> ${successCount}/3</p>`;
+        html += `<p><strong>Voting Method:</strong> ${votingResult.method}</p>`;
+
+        if (votingResult.conflict) {
+            html += `<div class="info-box warning" style="margin: 10px 0;">
+                <strong>Warning:</strong> Layers disagree! Showing highest confidence result.
+                Check individual layers below for details.
+            </div>`;
+        }
+
+        if (votingResult.final) {
+            const isEncrypted = votingResult.final.length > 50 && /^[A-Za-z0-9+/=]+$/.test(votingResult.final);
+            if (isEncrypted && !passphrase) {
+                html += `<div class="info-box warning" style="margin: 10px 0;">
+                    Data appears to be encrypted. Enter the passphrase to decrypt.
+                </div>`;
+            }
+
+            html += `<div class="decoded-message" style="font-size: 1.1em; margin: 15px 0; padding: 20px;">
+                ${escapeHtml(votingResult.final)}
+            </div>`;
+        }
     } else {
-        html += `
-            <h3 style="margin-bottom: 15px;">No Hidden Message Found</h3>
-            <p>Could not decode any layer. This might not be a Multi-Layer Stego image.</p>
-        `;
+        html += `<h3 style="margin-bottom: 15px;">No Hidden Message Found</h3>
+            <p>Could not decode any layer. This might not be a Multi-Layer Stego image,
+            or the image may have been corrupted (JPEG compression, SNS upload, etc.)</p>`;
     }
 
-    // Show individual layer results
+    // Layer details
     html += '<h4 style="margin: 20px 0 10px;">Layer Details:</h4>';
 
     const layerNames = { lsb: 'Layer 1: LSB', prism: 'Layer 2: Prism', noise: 'Layer 3: Noise' };
 
     for (const [layer, result] of Object.entries(results)) {
-        html += `
-            <div class="layer-result">
-                <h4>
-                    ${layerNames[layer]}
-                    <span class="status ${result.success ? 'success' : 'fail'}">
-                        ${result.success ? 'Decoded' : 'Not Found'}
-                    </span>
-                </h4>
-                ${result.success ? `
-                    <p style="color: #888; font-size: 0.9em;">Message: "${escapeHtml(result.message.substring(0, 50))}${result.message.length > 50 ? '...' : ''}"</p>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${result.confidence}%"></div>
-                    </div>
-                    <p style="color: #666; font-size: 0.8em; margin-top: 5px;">Confidence: ${result.confidence}%</p>
-                ` : '<p style="color: #666; font-size: 0.9em;">No data detected in this layer</p>'}
-            </div>
-        `;
+        const matchedInVote = votingResult.matchedLayers?.includes(layer);
+
+        html += `<div class="layer-result">
+            <h4>
+                ${layerNames[layer]}
+                <span class="status ${result.success ? (matchedInVote ? 'match' : 'success') : 'fail'}">
+                    ${result.success ? (matchedInVote ? 'Matched' : 'Decoded') : 'Not Found'}
+                </span>
+            </h4>
+            ${result.success ? `
+                <p style="color: #888; font-size: 0.9em;">
+                    Message: "${escapeHtml(result.message.substring(0, 60))}${result.message.length > 60 ? '...' : ''}"
+                </p>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: ${result.confidence}%"></div>
+                </div>
+                <p style="color: #666; font-size: 0.8em; margin-top: 5px;">Confidence: ${result.confidence}%</p>
+            ` : '<p style="color: #666; font-size: 0.9em;">No valid MLSG frame detected</p>'}
+        </div>`;
     }
 
     html += '</div>';
@@ -1285,7 +1602,7 @@ function displayDecodeResults(results) {
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS
+// UTILITY
 // =============================================================================
 function updateProgress(percent) {
     document.getElementById('progress-fill').style.width = percent + '%';
@@ -1293,8 +1610,10 @@ function updateProgress(percent) {
 
 function updateStep(stepId, status) {
     const step = document.getElementById(stepId);
-    step.classList.remove('active', 'done');
-    if (status) step.classList.add(status);
+    if (step) {
+        step.classList.remove('active', 'done');
+        if (status) step.classList.add(status);
+    }
 }
 
 function showError(mode, message) {
