@@ -9,6 +9,8 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 このリポジトリは、iPhoneのみで開発された「対AIステガノグラフィ・ツール集」です。
 最新のAI（GrokやGPT-4o）に対し、「AIが認識できない情報」を作成し、解読競争に勝利するために作られました。
 
+📍 **ロードマップ**: [マイルストーン.md](./マイルストーン.md)
+
 ---
 
 ## 🛠️ Included Tools (収録ツール)
