@@ -128,6 +128,16 @@ Write and EXECUTE Python code to:
 3. **Output**: A colorful grid image
 4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
 
+### Noise Talk Roundtrip (Encode → PNG保存 → Upload Decode)
+
+1. `noise.html` でテキストを入力して **Generate** を押す。
+2. **Save** でPNG保存する（スクリーンショットではなくPNG推奨）。
+3. 同じページ下部の **Decode (PNG → Text)** に保存した画像をアップロード。
+4. **Decode** を押して復元結果を確認。
+5. 自動推定が不安定な場合は、ヘッダーの `GRID SIZE: cols x rows` を見て列数/行数を手動入力して再実行。
+
+> 仕様メモ: OCRは使わず、赤い区切り線の検出 + グリッド輝度サンプリングで 1/0 を復元し、8bitごとにASCIIへ戻します。
+
 ### Animated Prism Storm Algorithm
 
 1. **Input**: Secret message (e.g., "秘密メッセージ: 助けて、負傷者2名、北側入口")
