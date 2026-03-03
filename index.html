@@ -297,7 +297,14 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import {
+            utf16ToBinary,
+            binaryToUtf16,
+            encodeRgbLsbBits,
+            decodeRgbLsbBits,
+            getRgbLsbCapacityBits
+        } from './src/lsb.js';
         // グローバル変数
         let currentImage = null;
         let currentMode = 'encode';
@@ -437,20 +444,18 @@
 
                 // 1. テキストを「0」と「1」のバイナリに変換する
                 // UTF-16対応で16ビット単位、最後にヌル終端文字（00000000 00000000）を追加
-                let binary = "";
-                for (let i = 0; i < message.length; i++) {
-                    // 文字を16ビット（2バイト）の2進数に変換（日本語・絵文字対応）
-                    binary += message.charCodeAt(i).toString(2).padStart(16, '0');
-                }
-                binary += "0000000000000000"; // 終了の合図（ヌル文字）
+                const binary = utf16ToBinary(message, true);
 
                 // 2. 画像の容量チェック
-                const maxBits = (data.length / 4) * 3; // RGBの3チャンネル
+                const maxBits = getRgbLsbCapacityBits(data); // RGBの3チャンネル
                 if (binary.length > maxBits) {
                     showError('encode', '文章が長すぎて、この画像には入りきりません！もっと大きな画像を使うか、短いメッセージにしてください。');
                     return;
                 }
 
+                // 3. ピクセルを1つずつ書き換える（ここが核心！LSBステガノグラフィ）
+                const encoded = encodeRgbLsbBits(data, binary);
+                data.set(encoded);
                 // 3. ピクセルを書き換え（RGBのみ、Alphaは不変）
                 const originalAlpha = [];
                 for (let i = 3; i < data.length; i += 4) {
@@ -567,6 +572,11 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
+                let output = "";
+                const bits = decodeRgbLsbBits(data);
+                const decoded = binaryToUtf16(bits, true);
+                output = decoded.text;
+                const bitsCollected = decoded.bitsRead;
                 const rgbBits = extractBits(data, true);
                 const rgbResult = decodeBitsToText(rgbBits);
 
@@ -625,6 +635,10 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        window.switchMode = switchMode;
+        window.encodeMessage = encodeMessage;
+        window.decodeMessage = decodeMessage;
     </script>
 </body>
 </html>

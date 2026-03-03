@@ -234,7 +234,9 @@
         4. Decoding requires systematic pixel reading, not just "looking"
     </div>
 
-<script>
+<script type="module">
+    import { textToBinary8, computeGridDimensions } from './src/noiseGrid.js';
+
     const canvas = document.getElementById('noiseCanvas');
     const ctx = canvas.getContext('2d');
     const decodeCanvas = document.getElementById('decodeCanvas');
@@ -249,16 +251,11 @@
         }
 
         // 1. 文字列をバイナリ変換
-        let binary = "";
-        for (let i = 0; i < text.length; i++) {
-            let binChar = text.charCodeAt(i).toString(2).padStart(8, '0');
-            binary += binChar;
-        }
+        const binary = textToBinary8(text)
 
         // 2. グリッド計算
         const totalBits = binary.length;
-        const columns = Math.ceil(Math.sqrt(totalBits));
-        const rows = Math.ceil(totalBits / columns);
+        const { columns, rows } = computeGridDimensions(totalBits);
 
         // サイズ設定
         const pixelSize = 30; // もっと大きくして見やすく！
@@ -542,6 +539,9 @@
             generateNoise();
         }
     });
+
+    window.generateNoise = generateNoise;
+    window.downloadImage = downloadImage;
 </script>
 
 </body>
