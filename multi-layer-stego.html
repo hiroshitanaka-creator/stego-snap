@@ -341,6 +341,35 @@
             margin-top: 10px;
         }
 
+        .decoded-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn.copy {
+            width: auto;
+            margin: 0;
+            padding: 10px 18px;
+            font-size: 0.9em;
+            background: linear-gradient(135deg, #1dd1a1, #10ac84);
+        }
+
+        .copy-status {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .summary-list {
+            margin: 12px 0;
+            padding-left: 18px;
+            line-height: 1.6;
+            color: #cfcfcf;
+            font-size: 0.92em;
+        }
+
         .confidence-bar {
             height: 8px;
             background: rgba(255,255,255,0.1);
@@ -639,6 +668,12 @@
             <div class="info-box">
                 Upload a Multi-Layer Stego image to decode. The system will attempt to extract data from all layers
                 and use <strong>true majority voting</strong> (2/3 agreement) for maximum accuracy.
+            </div>
+
+            <div class="info-box warning">
+                <strong>Decode fails often after SNS upload.</strong> X / Instagram / LINE / Facebook may resize and re-compress files,
+                which destroys LSB and may alter Prism/Noise colors. Ask for the original <strong>PNG file</strong>, avoid screenshots,
+                and transfer via AirDrop / direct file share / cloud drive with "original quality" enabled.
             </div>
 
             <!-- Decryption -->
@@ -1616,39 +1651,69 @@ function findClosestHexColor(r, g, b) {
     return minDist < 30 ? closest : null;
 }
 
+function detectEncryptedLikeData(text) {
+    if (!text || text.length < 28) return { encryptedLike: false, reason: 'too_short' };
+
+    const base64Pattern = /^[A-Za-z0-9+/=]+$/;
+    if (!base64Pattern.test(text)) return { encryptedLike: false, reason: 'not_base64' };
+
+    const normalized = text.replace(/=+$/, '');
+    if (normalized.length < 56) return { encryptedLike: false, reason: 'base64_but_short' };
+
+    return { encryptedLike: true, reason: 'salt_iv_ciphertext_shape' };
+}
+
 function displayDecodeResults(results, votingResult, passphrase) {
     const successCount = Object.values(results).filter(r => r.success).length;
 
     let html = `<div class="result-box ${successCount > 0 ? (votingResult.conflict ? 'warning' : 'success') : 'error'}">`;
 
     if (successCount > 0) {
+        const matchedLayerNames = (votingResult.matchedLayers || []).map(l => ({ lsb: 'LSB', prism: 'Prism', noise: 'Noise' }[l] || l));
+        const encryptedHint = votingResult.final ? detectEncryptedLikeData(votingResult.final) : { encryptedLike: false };
+
         html += `<h3 style="margin-bottom: 15px;">Decoding Results</h3>`;
-        html += `<p><strong>Layers Decoded:</strong> ${successCount}/3</p>`;
-        html += `<p><strong>Voting Method:</strong> ${votingResult.method}</p>`;
+        html += `<ul class="summary-list">
+            <li><strong>Layers decoded:</strong> ${successCount}/3</li>
+            <li><strong>Voting method:</strong> ${escapeHtml(votingResult.method)}</li>
+            <li><strong>Matched layers:</strong> ${matchedLayerNames.length ? matchedLayerNames.join(', ') : 'No exact layer agreement'}</li>
+            <li><strong>Final decision path:</strong> ${votingResult.conflict ? 'Conflict fallback (highest confidence)' : 'Consensus / majority selection'}</li>
+        </ul>`;
 
         if (votingResult.conflict) {
             html += `<div class="info-box warning" style="margin: 10px 0;">
-                <strong>Warning:</strong> Layers disagree! Showing highest confidence result.
-                Check individual layers below for details.
+                <strong>Warning:</strong> Layers disagree. The output below is the highest-confidence candidate.
+                Verify with sender and compare layer details.
             </div>`;
         }
 
         if (votingResult.final) {
-            const isEncrypted = votingResult.final.length > 50 && /^[A-Za-z0-9+/=]+$/.test(votingResult.final);
-            if (isEncrypted && !passphrase) {
-                html += `<div class="info-box warning" style="margin: 10px 0;">
-                    Data appears to be encrypted. Enter the passphrase to decrypt.
+            if (encryptedHint.encryptedLike && !passphrase) {
+                html += `<div class="info-box crypto" style="margin: 10px 0;">
+                    <strong>Encrypted-like payload detected:</strong> output looks like Base64 salt+IV+ciphertext.
+                    Enter passphrase to attempt AES-GCM decryption.
                 </div>`;
             }
 
-            html += `<div class="decoded-message" style="font-size: 1.1em; margin: 15px 0; padding: 20px;">
+            html += `<div class="decoded-message" id="decoded-message-output" style="font-size: 1.1em; margin: 15px 0; padding: 20px;">
                 ${escapeHtml(votingResult.final)}
+            </div>
+            <div class="decoded-actions">
+                <button class="btn copy" type="button" onclick="copyDecodeResult()">Copy to clipboard</button>
+                <span id="copy-status" class="copy-status">Copy decoded result for sharing / verification.</span>
             </div>`;
         }
     } else {
         html += `<h3 style="margin-bottom: 15px;">No Hidden Message Found</h3>
             <p>Could not decode any layer. This might not be a Multi-Layer Stego image,
-            or the image may have been corrupted (JPEG compression, SNS upload, etc.)</p>`;
+            or the image may have been transformed after encoding.</p>
+            <div class="info-box warning" style="margin-top: 10px;">
+                <strong>Recovery guide:</strong>
+                1) Ask for original PNG (not screenshot).<br>
+                2) Avoid SNS-forwarded files (auto recompress + resize).<br>
+                3) If passphrase was used, enter exact passphrase including case/symbols.<br>
+                4) Re-download from cloud with "original quality" enabled.
+            </div>`;
     }
 
     // Layer details
@@ -1658,17 +1723,21 @@ function displayDecodeResults(results, votingResult, passphrase) {
 
     for (const [layer, result] of Object.entries(results)) {
         const matchedInVote = votingResult.matchedLayers?.includes(layer);
+        const encryptedHint = result.success ? detectEncryptedLikeData(result.message) : { encryptedLike: false };
 
         html += `<div class="layer-result">
             <h4>
                 ${layerNames[layer]}
                 <span class="status ${result.success ? (matchedInVote ? 'match' : 'success') : 'fail'}">
-                    ${result.success ? (matchedInVote ? 'Matched' : 'Decoded') : 'Not Found'}
+                    ${result.success ? (matchedInVote ? 'Matched vote' : 'Decoded') : 'Not Found'}
                 </span>
             </h4>
             ${result.success ? `
                 <p style="color: #888; font-size: 0.9em;">
                     Message: "${escapeHtml(result.message.substring(0, 60))}${result.message.length > 60 ? '...' : ''}"
+                </p>
+                <p style="color: #666; font-size: 0.82em; margin-top: 4px;">
+                    ${encryptedHint.encryptedLike ? 'Encrypted-like data pattern detected' : 'Plain-text-like / non-encrypted pattern'}
                 </p>
                 <div class="confidence-bar">
                     <div class="confidence-fill" style="width: ${result.confidence}%"></div>
@@ -1680,6 +1749,25 @@ function displayDecodeResults(results, votingResult, passphrase) {
 
     html += '</div>';
     document.getElementById('decode-result').innerHTML = html;
+}
+
+async function copyDecodeResult() {
+    const messageElement = document.getElementById('decoded-message-output');
+    const statusElement = document.getElementById('copy-status');
+    if (!messageElement || !statusElement) return;
+
+    const text = messageElement.textContent || '';
+    if (!text) {
+        statusElement.textContent = 'Nothing to copy.';
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(text);
+        statusElement.textContent = 'Copied to clipboard.';
+    } catch (error) {
+        statusElement.textContent = 'Copy failed. Select text manually and press Ctrl/Cmd + C.';
+    }
 }
 
 // =============================================================================

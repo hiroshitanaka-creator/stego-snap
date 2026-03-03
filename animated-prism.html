@@ -217,6 +217,127 @@ function avgColor(ctx, x, y, radius = 1) {
             const sy = clamp(Math.round(y + dy), 0, preview.height - 1);
             const p = ctx.getImageData(sx, sy, 1, 1).data;
             r += p[0]; g += p[1]; b += p[2]; c++;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animated Prism MVP</title>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct.min.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 24px; background: #111827; color: #e5e7eb; }
+    h1 { margin-bottom: 8px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    textarea, input, button { border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: #e5e7eb; padding: 10px; }
+    textarea { width: min(720px, 100%); min-height: 120px; }
+    button { cursor: pointer; background: #4f46e5; border: none; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .card { border: 1px solid #374151; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    #status { white-space: pre-wrap; color: #93c5fd; }
+    #decoded-output { white-space: pre-wrap; background: #0b1020; padding: 12px; border-radius: 8px; }
+    canvas { max-width: 100%; border: 1px solid #374151; border-radius: 8px; }
+    .small { color: #9ca3af; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Animated Prism MVP</h1>
+  <p class="small">UTF-16 → hex → 16色タイル。ヘッダーフレームに色マップ+パラメータを埋め込み、データフレームに分散保存します。</p>
+
+  <div class="card">
+    <h2>Encode</h2>
+    <textarea id="encode-input" placeholder="ここに文字列を入力"></textarea>
+    <div class="row">
+      <label>冗長化 (1-5): <input id="redundancy" type="number" min="1" max="5" value="3"></label>
+      <button id="encode-btn">GIFを生成</button>
+      <a id="download-link" style="display:none; align-self:center;" download="animated-prism-mvp.gif">GIFをダウンロード</a>
+    </div>
+    <canvas id="preview" width="512" height="384"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Decode</h2>
+    <div class="row">
+      <input id="gif-input" type="file" accept="image/gif">
+      <button id="decode-btn">GIFをデコード</button>
+    </div>
+    <div id="decoded-output">（デコード結果がここに表示されます）</div>
+  </div>
+
+  <div id="status">Ready.</div>
+
+  <script>
+    const GRID_COLS = 32;
+    const GRID_ROWS = 24;
+    const TILE = 16;
+    const WIDTH = GRID_COLS * TILE;
+    const HEIGHT = GRID_ROWS * TILE;
+    const MAX_DATA_FRAMES = 24;
+    const MAX_INPUT_CHARS = 1400;
+    const MAX_GIF_BYTES = 8 * 1024 * 1024;
+    const MAGIC_HEX = asciiToHex('APM1');
+
+    const BASE_COLORS = [
+      '#E53935','#8E24AA','#3949AB','#1E88E5',
+      '#00897B','#43A047','#7CB342','#FDD835',
+      '#FB8C00','#F4511E','#6D4C41','#546E7A',
+      '#5E35B1','#039BE5','#00ACC1','#D81B60'
+    ];
+
+    const els = {
+      input: document.getElementById('encode-input'),
+      redundancy: document.getElementById('redundancy'),
+      encodeBtn: document.getElementById('encode-btn'),
+      download: document.getElementById('download-link'),
+      preview: document.getElementById('preview'),
+      gifInput: document.getElementById('gif-input'),
+      decodeBtn: document.getElementById('decode-btn'),
+      output: document.getElementById('decoded-output'),
+      status: document.getElementById('status')
+    };
+
+    els.preview.width = WIDTH;
+    els.preview.height = HEIGHT;
+
+    els.encodeBtn.addEventListener('click', encodeToGif);
+    els.decodeBtn.addEventListener('click', decodeFromGif);
+
+    function setStatus(msg) { els.status.textContent = msg; }
+
+    async function encodeToGif() {
+      try {
+        const text = els.input.value;
+        const redundancy = clamp(parseInt(els.redundancy.value, 10) || 1, 1, 5);
+        if (!text) throw new Error('入力テキストが空です。');
+        if (text.length > MAX_INPUT_CHARS) throw new Error(`入力が長すぎます。上限は ${MAX_INPUT_CHARS} 文字です。`);
+
+        const payloadHex = utf16ToHex(text);
+        const repeatedHex = payloadHex.repeat(redundancy);
+        const frameCapacity = GRID_COLS * GRID_ROWS;
+        const dataFrames = Math.ceil(repeatedHex.length / frameCapacity) || 1;
+        if (dataFrames > MAX_DATA_FRAMES) {
+          throw new Error(`必要フレーム数が上限を超えました (${dataFrames}/${MAX_DATA_FRAMES})。短い文章にしてください。`);
+        }
+
+        const shuffled = shuffle([...BASE_COLORS]);
+        const digitToColor = {};
+        const digits = '0123456789abcdef';
+        for (let i = 0; i < 16; i++) digitToColor[digits[i]] = shuffled[i];
+
+        setStatus(`Encoding... payload=${payloadHex.length} nibbles, frames=${dataFrames + 1}`);
+
+        const gif = new GIF({
+          workers: 2,
+          quality: 10,
+          width: WIDTH,
+          height: HEIGHT,
+          workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+        });
+
+        const headerMeta = buildHeaderMeta(payloadHex.length, redundancy, dataFrames, repeatedHex.length);
+        gif.addFrame(drawHeaderFrame(digitToColor, headerMeta), { delay: 160 });
+
+        for (let i = 0; i < dataFrames; i++) {
+          const chunk = repeatedHex.slice(i * frameCapacity, (i + 1) * frameCapacity);
+          gif.addFrame(drawDataFrame(chunk, digitToColor), { delay: 100 });
         }
     }
     return { r: r / c, g: g / c, b: b / c };
@@ -433,5 +554,258 @@ async function decodePrismStormOmega() {
 document.getElementById('encode-btn').addEventListener('click', generateAnimatedPrism);
 document.getElementById('decode-btn').addEventListener('click', decodePrismStormOmega);
 </script>
+        const blob = await renderGif(gif);
+        const url = URL.createObjectURL(blob);
+        els.download.href = url;
+        els.download.style.display = 'inline';
+
+        const ctx = els.preview.getContext('2d');
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.drawImage(drawHeaderFrame(digitToColor, headerMeta), 0, 0);
+
+        setStatus(`完了: GIF ${(blob.size / 1024).toFixed(1)}KB / ${dataFrames + 1} フレーム`);
+      } catch (err) {
+        setStatus(`Encode失敗: ${err.message}`);
+      }
+    }
+
+    async function decodeFromGif() {
+      try {
+        const file = els.gifInput.files[0];
+        if (!file) throw new Error('GIFファイルを選択してください。');
+        if (file.size > MAX_GIF_BYTES) throw new Error(`ファイルが大きすぎます。上限は ${Math.floor(MAX_GIF_BYTES / 1024 / 1024)}MB です。`);
+
+        setStatus('Decoding...');
+        const buf = await file.arrayBuffer();
+        const parsed = gifuct.parseGIF(buf);
+        const frames = gifuct.decompressFrames(parsed, true);
+        if (frames.length < 2) throw new Error('フレーム不足です（ヘッダー+データが必要）。');
+
+        const headerCanvas = frameToCanvas(frames[0], parsed.lsd.width, parsed.lsd.height);
+        const headerCtx = headerCanvas.getContext('2d');
+
+        const digits = '0123456789abcdef';
+        const palette = [];
+        const colorToDigit = {};
+        for (let i = 0; i < 16; i++) {
+          const c = sampleTileColor(headerCtx, i, 0);
+          palette.push(c);
+          colorToDigit[colorKey(c)] = digits[i];
+        }
+
+        const metaLenHex = readTilesAsHex(headerCtx, palette, 0, GRID_COLS, 4);
+        const metaLen = parseInt(metaLenHex, 16);
+        if (!Number.isFinite(metaLen) || metaLen < 22 || metaLen > 128) throw new Error('ヘッダーメタ情報が不正です。');
+        const metaHex = readTilesAsHex(headerCtx, palette, 4, GRID_COLS, metaLen);
+        const meta = parseHeaderMeta(metaHex);
+
+        if (meta.magic !== MAGIC_HEX) throw new Error('ヘッダーMAGIC不一致。Animated Prism MVP形式ではありません。');
+        if (meta.dataFrames > MAX_DATA_FRAMES) throw new Error(`データフレーム数が上限超え (${meta.dataFrames}/${MAX_DATA_FRAMES})。`);
+        if (frames.length < 1 + meta.dataFrames) throw new Error(`フレーム不足: 必要 ${1 + meta.dataFrames}, 実際 ${frames.length}`);
+
+        let packedHex = '';
+        for (let i = 0; i < meta.dataFrames; i++) {
+          const c = frameToCanvas(frames[i + 1], parsed.lsd.width, parsed.lsd.height);
+          const chunkHex = readTilesAsHex(c.getContext('2d'), palette, 0, GRID_COLS, GRID_COLS * GRID_ROWS);
+          packedHex += chunkHex;
+          if (packedHex.length >= meta.totalLen) break;
+        }
+        packedHex = packedHex.slice(0, meta.totalLen);
+
+        if (packedHex.length < meta.payloadLen * meta.redundancy) {
+          throw new Error('データ長不足で復元できません。');
+        }
+
+        const correctedHex = majorityVoteHex(packedHex, meta.payloadLen, meta.redundancy);
+        const text = hexToUtf16(correctedHex);
+        els.output.textContent = text || '（空文字列）';
+        setStatus(`Decode完了: ${text.length} chars, frames=${meta.dataFrames + 1}`);
+      } catch (err) {
+        els.output.textContent = 'デコード失敗';
+        setStatus(`Decode失敗: ${err.message}`);
+      }
+    }
+
+    function drawHeaderFrame(digitToColor, headerMeta) {
+      const canvas = document.createElement('canvas');
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      const digits = '0123456789abcdef';
+      for (let i = 0; i < 16; i++) {
+        drawTile(ctx, i, 0, digitToColor[digits[i]]);
+      }
+      const data = headerMeta.length.toString(16).padStart(4, '0') + headerMeta;
+      drawHexTiles(ctx, data, digitToColor, 0, 1);
+      return canvas;
+    }
+
+    function drawDataFrame(hexChunk, digitToColor) {
+      const canvas = document.createElement('canvas');
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      drawHexTiles(ctx, hexChunk.padEnd(GRID_COLS * GRID_ROWS, '0'), digitToColor, 0, 0);
+      return canvas;
+    }
+
+    function drawHexTiles(ctx, hex, digitToColor, startIndex, startRow) {
+      for (let i = 0; i < hex.length; i++) {
+        const pos = startIndex + i;
+        const x = pos % GRID_COLS;
+        const y = startRow + Math.floor(pos / GRID_COLS);
+        if (y >= GRID_ROWS) break;
+        drawTile(ctx, x, y, digitToColor[hex[i]] || '#000000');
+      }
+    }
+
+    function drawTile(ctx, gridX, gridY, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(gridX * TILE, gridY * TILE, TILE, TILE);
+    }
+
+    function readTilesAsHex(ctx, palette, startIndex, cols, count) {
+      let hex = '';
+      for (let i = 0; i < count; i++) {
+        const pos = startIndex + i;
+        const gridX = pos % cols;
+        const gridY = Math.floor(pos / cols);
+        const sample = sampleTileColor(ctx, gridX, gridY);
+        const digit = nearestDigit(sample, palette);
+        hex += digit;
+      }
+      return hex;
+    }
+
+    function sampleTileColor(ctx, gridX, gridY) {
+      const px = gridX * TILE + Math.floor(TILE / 2);
+      const py = gridY * TILE + Math.floor(TILE / 2);
+      const d = ctx.getImageData(px, py, 1, 1).data;
+      return { r: d[0], g: d[1], b: d[2] };
+    }
+
+    function nearestDigit(color, palette) {
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < palette.length; i++) {
+        const d = colorDist(color, palette[i]);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best.toString(16);
+    }
+
+    function frameToCanvas(frame, width, height) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      const img = ctx.createImageData(width, height);
+      if (frame.dims.width === width && frame.dims.height === height) {
+        img.data.set(frame.patch);
+      } else {
+        for (let y = 0; y < frame.dims.height; y++) {
+          for (let x = 0; x < frame.dims.width; x++) {
+            const src = (y * frame.dims.width + x) * 4;
+            const dx = frame.dims.left + x;
+            const dy = frame.dims.top + y;
+            if (dx < 0 || dy < 0 || dx >= width || dy >= height) continue;
+            const dst = (dy * width + dx) * 4;
+            img.data[dst] = frame.patch[src];
+            img.data[dst + 1] = frame.patch[src + 1];
+            img.data[dst + 2] = frame.patch[src + 2];
+            img.data[dst + 3] = frame.patch[src + 3];
+          }
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      return canvas;
+    }
+
+    function buildHeaderMeta(payloadLen, redundancy, dataFrames, totalLen) {
+      return [
+        MAGIC_HEX,
+        payloadLen.toString(16).padStart(8, '0'),
+        redundancy.toString(16).padStart(2, '0'),
+        dataFrames.toString(16).padStart(4, '0'),
+        totalLen.toString(16).padStart(8, '0')
+      ].join('');
+    }
+
+    function parseHeaderMeta(metaHex) {
+      return {
+        magic: metaHex.slice(0, 8),
+        payloadLen: parseInt(metaHex.slice(8, 16), 16),
+        redundancy: parseInt(metaHex.slice(16, 18), 16),
+        dataFrames: parseInt(metaHex.slice(18, 22), 16),
+        totalLen: parseInt(metaHex.slice(22, 30), 16)
+      };
+    }
+
+    function majorityVoteHex(repeatedHex, payloadLen, redundancy) {
+      let out = '';
+      for (let i = 0; i < payloadLen; i++) {
+        const votes = {};
+        for (let r = 0; r < redundancy; r++) {
+          const idx = r * payloadLen + i;
+          const d = repeatedHex[idx] || '0';
+          votes[d] = (votes[d] || 0) + 1;
+        }
+        out += Object.keys(votes).sort((a, b) => votes[b] - votes[a])[0];
+      }
+      return out;
+    }
+
+    function utf16ToHex(str) {
+      let h = '';
+      for (let i = 0; i < str.length; i++) {
+        h += str.charCodeAt(i).toString(16).padStart(4, '0');
+      }
+      return h;
+    }
+
+    function hexToUtf16(hex) {
+      let out = '';
+      for (let i = 0; i + 3 < hex.length; i += 4) {
+        const code = parseInt(hex.slice(i, i + 4), 16);
+        if (!Number.isNaN(code)) out += String.fromCharCode(code);
+      }
+      return out;
+    }
+
+    function asciiToHex(s) {
+      return Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    }
+
+    function colorDist(a, b) {
+      const dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b;
+      return dr * dr + dg * dg + db * db;
+    }
+
+    function colorKey(c) { return `${c.r},${c.g},${c.b}`; }
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function renderGif(gif) {
+      return new Promise((resolve, reject) => {
+        gif.on('finished', resolve);
+        gif.on('abort', () => reject(new Error('GIF生成が中断されました。')));
+        gif.on('error', (e) => reject(new Error(e?.message || 'GIF生成エラー')));
+        gif.render();
+      });
+    }
+  </script>
 </body>
 </html>

@@ -70,6 +70,56 @@
             image-rendering: pixelated; /* ドットをくっきり */
         }
 
+        .decode-panel {
+            margin: 20px auto;
+            max-width: 820px;
+            padding: 16px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .decode-panel h2 {
+            margin: 0 0 10px 0;
+            color: #7df9ff;
+            font-size: 18px;
+        }
+
+        .decode-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            color: #ddd;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        .status {
+            font-size: 13px;
+            color: #9ad3ff;
+            margin: 8px 0;
+            min-height: 18px;
+        }
+
+        pre#decodeResult {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            color: #d3ffe5;
+            min-height: 80px;
+        }
+
         .instructions {
             background: #1a1a1a;
             padding: 15px;
@@ -161,6 +211,17 @@
     <canvas id="prismCanvas"></canvas>
     <img id="outputImage">
 
+    <div class="decode-panel">
+        <h2>Decode</h2>
+        <div class="decode-controls">
+            <input type="file" id="decodeFile" accept="image/png,image/*">
+            <button onclick="decodeUploadedImage()">🔓 画像をデコード</button>
+            <button onclick="runRoundtripTests()">🧪 Roundtrip 10件テスト</button>
+        </div>
+        <div id="decodeStatus" class="status"></div>
+        <pre id="decodeResult">ここに復号結果が表示されます。</pre>
+    </div>
+
     <div class="instructions">
         <strong>🌈 Grokへの挑戦方法:</strong><br>
         このカラフルな画像をXにアップして、以下の<strong>呪文（プロンプト）</strong>を叩きつけてください。<br>
@@ -190,6 +251,8 @@
     const canvas = document.getElementById('prismCanvas');
     const ctx = canvas.getContext('2d');
     const outputImage = document.getElementById('outputImage');
+    const decodeStatus = document.getElementById('decodeStatus');
+    const decodeResult = document.getElementById('decodeResult');
 
     // 16進数と色の対応表（パレット）
     const hexPalette = {
@@ -211,6 +274,101 @@
         'f': '#FFFFFF'  // 白
     };
 
+    const paletteRgb = Object.entries(hexPalette).map(([hex, color]) => ({
+        hex,
+        rgb: hexToRgb(color)
+    }));
+
+    const MAX_DECODE_PIXELS = 4_000_000;
+    const COLOR_DISTANCE_THRESHOLD = 80;
+
+    function hexToRgb(hexColor) {
+        return {
+            r: parseInt(hexColor.slice(1, 3), 16),
+            g: parseInt(hexColor.slice(3, 5), 16),
+            b: parseInt(hexColor.slice(5, 7), 16)
+        };
+    }
+
+    function nearestHexDigit(r, g, b, threshold = COLOR_DISTANCE_THRESHOLD) {
+        let best = null;
+        let bestDist = Number.POSITIVE_INFINITY;
+        for (const p of paletteRgb) {
+            const dr = r - p.rgb.r;
+            const dg = g - p.rgb.g;
+            const db = b - p.rgb.b;
+            const dist = (dr * dr) + (dg * dg) + (db * db);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = p.hex;
+            }
+        }
+        return bestDist <= (threshold * threshold) ? best : null;
+    }
+
+    function textToHex(text) {
+        let hexString = "";
+        for (let i = 0; i < text.length; i++) {
+            hexString += text.charCodeAt(i).toString(16).padStart(4, '0');
+        }
+        return hexString;
+    }
+
+    function hexToText(hexString) {
+        if (!hexString || hexString.length < 4) {
+            return "";
+        }
+        const chunks = Math.floor(hexString.length / 4);
+        let output = "";
+        for (let i = 0; i < chunks; i++) {
+            const unit = hexString.slice(i * 4, (i + 1) * 4);
+            output += String.fromCharCode(parseInt(unit, 16));
+        }
+        return output;
+    }
+
+    function renderPrismToCanvas(text, targetCanvas, targetCtx) {
+        const hexString = textToHex(text);
+
+        const totalBlocks = hexString.length;
+        const columns = Math.ceil(Math.sqrt(totalBlocks * 2));
+        const rows = Math.ceil(totalBlocks / columns);
+
+        const pixelSize = 40;
+        const headerHeight = 60;
+        const padding = 20;
+
+        targetCanvas.width = (columns * pixelSize) + (padding * 2);
+        targetCanvas.height = (rows * pixelSize) + headerHeight + padding;
+
+        targetCtx.fillStyle = "#333333";
+        targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+        targetCtx.fillStyle = "#00d2ff";
+        targetCtx.font = "bold 20px Arial";
+        targetCtx.textAlign = "center";
+        targetCtx.fillText(`UTF-16 COLOR CODE (${totalBlocks} hex digits)`, targetCanvas.width / 2, 40);
+
+        targetCtx.strokeStyle = "#ff00ff";
+        targetCtx.lineWidth = 3;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, headerHeight - 5);
+        targetCtx.lineTo(targetCanvas.width, headerHeight - 5);
+        targetCtx.stroke();
+
+        for (let i = 0; i < totalBlocks; i++) {
+            const hexDigit = hexString[i];
+            const col = i % columns;
+            const row = Math.floor(i / columns);
+            const x = (col * pixelSize) + padding;
+            const y = (row * pixelSize) + headerHeight;
+            targetCtx.fillStyle = hexPalette[hexDigit];
+            targetCtx.fillRect(x + 1, y + 1, pixelSize - 2, pixelSize - 2);
+        }
+
+        return { hexString, totalBlocks };
+    }
+
     function generatePrism() {
         const text = document.getElementById('inputText').value;
         if (!text) {
@@ -218,66 +376,236 @@
             return;
         }
 
-        // 1. 文字列をUTF-16のHex(16進数)文字列に変換
-        let hexString = "";
-        for (let i = 0; i < text.length; i++) {
-            // 16進数に変換し、必ず4桁にする（例: 3068）
-            let hexChar = text.charCodeAt(i).toString(16).padStart(4, '0');
-            hexString += hexChar;
-        }
-
-        // グリッド計算
-        const totalBlocks = hexString.length;
-        // なるべく横長にする（ヘッダーを描くため）
-        const columns = Math.ceil(Math.sqrt(totalBlocks * 2));
-        const rows = Math.ceil(totalBlocks / columns);
-
-        const pixelSize = 40; // ブロックの大きさ
-        const headerHeight = 60; // 文字を書くスペース
-        const padding = 20;
-
-        canvas.width = (columns * pixelSize) + (padding * 2);
-        canvas.height = (rows * pixelSize) + headerHeight + padding;
-
-        // 背景
-        ctx.fillStyle = "#333333";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // ヘッダー文字（ヒント）
-        ctx.fillStyle = "#00d2ff";
-        ctx.font = "bold 20px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(`UTF-16 COLOR CODE (${totalBlocks} hex digits)`, canvas.width / 2, 40);
-
-        // 区切り線
-        ctx.strokeStyle = "#ff00ff";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, headerHeight - 5);
-        ctx.lineTo(canvas.width, headerHeight - 5);
-        ctx.stroke();
-
-        // 2. カラーブロック描画
-        for (let i = 0; i < totalBlocks; i++) {
-            const hexDigit = hexString[i];
-            const color = hexPalette[hexDigit]; // パレットから色を取得
-
-            const col = i % columns;
-            const row = Math.floor(i / columns);
-
-            const x = (col * pixelSize) + padding;
-            const y = (row * pixelSize) + headerHeight;
-
-            ctx.fillStyle = color;
-            // Xの圧縮対策：隣の色と混ざらないように少し隙間を空ける
-            ctx.fillRect(x+1, y+1, pixelSize-2, pixelSize-2);
-        }
+        const { totalBlocks } = renderPrismToCanvas(text, canvas, ctx);
 
         outputImage.src = canvas.toDataURL("image/png");
         outputImage.style.display = "block";
 
         // 成功メッセージ
         console.log(`✅ Prism Code generated: ${text.length} characters = ${totalBlocks} hex digits`);
+    }
+
+    async function decodeUploadedImage() {
+        const fileInput = document.getElementById('decodeFile');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('画像を選んでください。');
+            return;
+        }
+
+        decodeStatus.textContent = '画像を読み込み中...';
+        decodeResult.textContent = '';
+
+        try {
+            const image = await loadFileAsImage(file);
+            const { text, hexString } = await decodeImageToText(image, decodeStatus);
+            decodeResult.textContent = text || '(空文字)';
+            decodeStatus.textContent = `✅ デコード成功（${hexString.length} hex digits / ${Math.floor(hexString.length / 4)} chars）`;
+        } catch (error) {
+            decodeStatus.textContent = `❌ デコード失敗: ${error.message}`;
+            decodeResult.textContent = [
+                '原因候補:',
+                '- 圧縮で色が変化（JPEGやSNS再圧縮）',
+                '- 画像がリサイズされてブロック境界が崩れた',
+                '- スクショによりアンチエイリアスが混入',
+                '- 閾値で誤判定（色が似すぎた）'
+            ].join('\n');
+        }
+    }
+
+    function loadFileAsImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+                img.src = reader.result;
+            };
+            reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function decodeImageToText(image, statusElement) {
+        if (image.width * image.height > MAX_DECODE_PIXELS) {
+            throw new Error(`画像が大きすぎます（最大 ${MAX_DECODE_PIXELS.toLocaleString()} px）`);
+        }
+
+        const workCanvas = document.createElement('canvas');
+        const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+        workCanvas.width = image.width;
+        workCanvas.height = image.height;
+        workCtx.drawImage(image, 0, 0);
+
+        const { width, height } = workCanvas;
+        const imageData = workCtx.getImageData(0, 0, width, height).data;
+        const mask = new Int16Array(width * height).fill(-1);
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                const digit = nearestHexDigit(imageData[idx], imageData[idx + 1], imageData[idx + 2]);
+                if (digit !== null) {
+                    mask[y * width + x] = parseInt(digit, 16);
+                }
+            }
+            if (y % 40 === 0) {
+                statusElement.textContent = `色解析中... ${Math.round((y / height) * 100)}%`;
+                await new Promise(requestAnimationFrame);
+            }
+        }
+
+        statusElement.textContent = 'ブロック解析中...';
+        const visited = new Uint8Array(width * height);
+        const queue = new Int32Array(width * height);
+        const components = [];
+        const minYLimit = detectSeparatorY(mask, width, height);
+
+        for (let i = 0; i < mask.length; i++) {
+            if (mask[i] < 0 || visited[i]) continue;
+
+            let head = 0;
+            let tail = 0;
+            queue[tail++] = i;
+            visited[i] = 1;
+
+            let area = 0;
+            let minX = width;
+            let maxX = 0;
+            let minY = height;
+            let maxY = 0;
+            const counts = new Array(16).fill(0);
+
+            while (head < tail) {
+                const pos = queue[head++];
+                const px = pos % width;
+                const py = Math.floor(pos / width);
+                const digit = mask[pos];
+                counts[digit] += 1;
+                area += 1;
+                minX = Math.min(minX, px);
+                maxX = Math.max(maxX, px);
+                minY = Math.min(minY, py);
+                maxY = Math.max(maxY, py);
+
+                const neighbors = [pos - 1, pos + 1, pos - width, pos + width];
+                for (const nb of neighbors) {
+                    if (nb < 0 || nb >= mask.length) continue;
+                    if (visited[nb] || mask[nb] < 0) continue;
+                    const nx = nb % width;
+                    if (Math.abs(nx - px) > 1) continue;
+                    visited[nb] = 1;
+                    queue[tail++] = nb;
+                }
+            }
+
+            const w = maxX - minX + 1;
+            const h = maxY - minY + 1;
+            const aspect = w / h;
+            const dominantDigit = counts.indexOf(Math.max(...counts)).toString(16);
+            if (area >= 9 && minY >= minYLimit && aspect > 0.6 && aspect < 1.6) {
+                components.push({
+                    digit: dominantDigit,
+                    cx: (minX + maxX) / 2,
+                    cy: (minY + maxY) / 2,
+                    h,
+                    area
+                });
+            }
+        }
+
+        if (!components.length) {
+            throw new Error('色ブロックが見つかりませんでした');
+        }
+
+        const areas = components.map(c => c.area).sort((a, b) => a - b);
+        const medianArea = areas[Math.floor(areas.length / 2)];
+        const filtered = components.filter(c => c.area >= medianArea * 0.4 && c.area <= medianArea * 2.5);
+        if (!filtered.length) {
+            throw new Error('ブロックサイズが不正です');
+        }
+
+        const medianHeight = filtered.map(c => c.h).sort((a, b) => a - b)[Math.floor(filtered.length / 2)];
+        const rowTolerance = Math.max(2, Math.floor(medianHeight * 0.7));
+        filtered.sort((a, b) => a.cy - b.cy);
+
+        const rows = [];
+        for (const comp of filtered) {
+            const row = rows.find(r => Math.abs(r.cy - comp.cy) <= rowTolerance);
+            if (row) {
+                row.items.push(comp);
+                row.cy = (row.cy * (row.items.length - 1) + comp.cy) / row.items.length;
+            } else {
+                rows.push({ cy: comp.cy, items: [comp] });
+            }
+        }
+
+        rows.sort((a, b) => a.cy - b.cy);
+        const hexString = rows
+            .map(row => row.items.sort((a, b) => a.cx - b.cx).map(item => item.digit).join(''))
+            .join('');
+
+        if (hexString.length < 4) {
+            throw new Error('有効なhex列を復元できませんでした');
+        }
+
+        statusElement.textContent = 'UTF-16へ変換中...';
+        return { text: hexToText(hexString), hexString };
+    }
+
+    function detectSeparatorY(mask, width, height) {
+        const searchLimit = Math.floor(height * 0.4);
+        let bestRow = Math.floor(height * 0.1);
+        let bestCount = 0;
+        for (let y = 0; y < searchLimit; y++) {
+            let count = 0;
+            for (let x = 0; x < width; x++) {
+                if (mask[y * width + x] === 0x6) {
+                    count += 1;
+                }
+            }
+            if (count > bestCount) {
+                bestCount = count;
+                bestRow = y;
+            }
+        }
+        return bestRow + 2;
+    }
+
+    async function runRoundtripTests() {
+        const testCases = [
+            'とりあえず、踊らない？',
+            'こんにちは世界',
+            '秘密のメッセージ123',
+            '漢字とかなカナMix',
+            'emoji🙂はどうなる？',
+            '改行\nテスト',
+            'ASCII only test',
+            '長文: '.repeat(40),
+            '閾値チェックabcdef0123456789',
+            '最後のケース'
+        ];
+
+        let pass = 0;
+        for (let i = 0; i < testCases.length; i++) {
+            decodeStatus.textContent = `Roundtrip 実行中... ${i + 1}/${testCases.length}`;
+            const offscreen = document.createElement('canvas');
+            const offctx = offscreen.getContext('2d');
+            renderPrismToCanvas(testCases[i], offscreen, offctx);
+            const img = new Image();
+            img.src = offscreen.toDataURL('image/png');
+            await img.decode();
+            const decoded = await decodeImageToText(img, decodeStatus);
+            if (decoded.text === testCases[i]) {
+                pass += 1;
+            }
+            await new Promise(requestAnimationFrame);
+        }
+        decodeStatus.textContent = `🧪 Roundtrip結果: ${pass}/${testCases.length} 一致`;
+        decodeResult.textContent = pass === testCases.length
+            ? '全ケース一致しました ✅'
+            : `不一致がありました（${testCases.length - pass}件）`;
     }
 
     function downloadImage() {
