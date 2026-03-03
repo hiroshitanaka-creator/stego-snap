@@ -1,0 +1,11 @@
+{
+  "name": "stego-snap",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unit tests for Stego Snap pure functions",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {}
+}

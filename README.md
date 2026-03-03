@@ -1,5 +1,9 @@
 # 📦 Stego Snap Toy Box
 
+[![Unit Tests](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml/badge.svg)](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml)
+
+**"Visible to Humans, Invisible to AI."**
+（人間には見えて、AIには見えない。）
 **"Visible to Humans, Harder for Casual Vision-Only Reading."**
 （人間には見えて、ぱっと見では読み取りづらい表現へ。）
 
