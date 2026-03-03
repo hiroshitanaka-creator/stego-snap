@@ -1,6 +1,222 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Prism Storm - Hardened MVP</title>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="https://unpkg.com/gifuct-js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #141625; color: #e8e8f0; }
+        .container { max-width: 980px; margin: 0 auto; }
+        .panel { background: #1d2038; border: 1px solid #31375d; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        textarea, input, select { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #4b5384; background: #0f1120; color: #f2f2f7; margin-top: 6px; }
+        button { width: 100%; padding: 12px; border: 0; border-radius: 8px; margin-top: 10px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, #7c8bff 0%, #50e3ff 100%); color: #111; }
+        .row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .muted { color: #a3a8c8; font-size: 13px; }
+        .result { white-space: pre-wrap; background: #0f1120; border: 1px solid #353d6a; border-radius: 8px; padding: 12px; margin-top: 10px; }
+        canvas { max-width: 100%; border: 1px solid #3c4578; border-radius: 8px; background: #000; }
+        .nav { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 20px; }
+        .nav a { color: #7ea0ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🌈✨ Animated Prism Storm (Hardened)</h1>
+    <p class="muted">MVP優先: 成功率と復号信頼度を強化した実装です。</p>
+
+    <div class="panel">
+        <h3>Encode</h3>
+        <label>メッセージ</label>
+        <textarea id="message" rows="4">秘密メッセージ: 助けて、北側入口</textarea>
+        <div class="row">
+            <label>冗長化 (1-5)
+                <input type="number" id="redundancy" min="1" max="5" value="3">
+            </label>
+            <label>フレーム数 (10-50)
+                <input type="number" id="frame-count" min="10" max="50" value="18">
+            </label>
+            <label>フレーム分散
+                <select id="distribution">
+                    <option value="even">均等割り (Round Robin)</option>
+                    <option value="shuffle">シャッフル巡回</option>
+                </select>
+            </label>
+        </div>
+        <div class="row">
+            <label><input type="checkbox" id="pure-mode" checked> 純粋モード（演出オフ）</label>
+            <label><input type="checkbox" id="light-transform"> 軽い回転変形を有効化</label>
+        </div>
+        <button id="encode-btn">GIF生成</button>
+        <a id="download-link" class="muted" download="animated-prism-storm.gif"></a>
+        <div class="result" id="encode-log"></div>
+        <canvas id="preview" width="520" height="610"></canvas>
+    </div>
+
+    <div class="panel">
+        <h3>Decode</h3>
+        <input type="file" id="gif-file-input" accept="image/gif">
+        <button id="decode-btn">GIFを復号</button>
+        <div class="result" id="decoded-text">ここに結果が表示されます。</div>
+    </div>
+
+    <div class="nav">
+        <a href="index.html">🖼️ Stego Snap</a>
+        <a href="prism.html">🌈 Prism Code</a>
+        <a href="noise.html">🔊 Noise Talk</a>
+        <a href="multi-layer-stego.html">⚡ Multi-Layer Stego</a>
+    </div>
+</div>
+
+<script>
+const CFG = {
+    cols: 20,
+    rows: 20,
+    tile: 24,
+    pad: 20,
+    dataTop: 110,
+    swatchTop: 62,
+    swatchSize: 20,
+    metaTop: 24,
+    metaCount: 16
+};
+
+const BASE_PALETTE = ['#000000','#ff2d55','#34c759','#0a84ff','#ffd60a','#64d2ff','#bf5af2','#d1d1d6','#8e8e93','#ff9f0a','#a2845e','#30d158','#9f5cf7','#5ac8fa','#5e5ce6','#ffffff'];
+const DIGITS = '0123456789abcdef';
+
+const preview = document.getElementById('preview');
+const pctx = preview.getContext('2d');
+
+function randomSeed() { return Math.floor(Math.random() * 0xffff); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function hexFromText(text) {
+    let out = '';
+    for (let i = 0; i < text.length; i++) out += text.charCodeAt(i).toString(16).padStart(4, '0');
+    return out;
+}
+
+function textFromHex(hex) {
+    let out = '';
+    for (let i = 0; i + 3 < hex.length; i += 4) out += String.fromCharCode(parseInt(hex.slice(i, i + 4), 16));
+    return out;
+}
+
+function shuffleWithSeed(arr, seed) {
+    let x = seed || 1;
+    const next = () => (x = (1103515245 * x + 12345) & 0x7fffffff);
+    const out = [...arr];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = next() % (i + 1);
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+function buildMap(seed) {
+    const shuffled = shuffleWithSeed(BASE_PALETTE, seed);
+    const map = {};
+    DIGITS.split('').forEach((d, i) => map[d] = shuffled[i]);
+    return map;
+}
+
+function angleForFrame(frameIndex, seed) {
+    return ((frameIndex * 13 + seed) % 11) - 5;
+}
+
+function drawHeader(ctx, map, metaHex) {
+    ctx.fillStyle = '#0b0d1a';
+    ctx.fillRect(0, 0, preview.width, preview.height);
+    ctx.fillStyle = '#7ea0ff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('ANIMATED PRISM HEADER', 20, 18);
+
+    for (let i = 0; i < CFG.metaCount; i++) {
+        const d = metaHex[i] || '0';
+        ctx.fillStyle = map[d];
+        ctx.fillRect(20 + i * 30, CFG.metaTop, 20, 20);
+    }
+
+    for (let i = 0; i < 16; i++) {
+        const d = DIGITS[i];
+        ctx.fillStyle = map[d];
+        ctx.fillRect(20 + i * 30, CFG.swatchTop, CFG.swatchSize, CFG.swatchSize);
+    }
+
+    ctx.fillStyle = '#a3a8c8';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('meta: v/r/fc/mode/seed/len/crc', 20, 100);
+}
+
+function drawFrame(ctx, map, frameDigits, mode, frameIndex, seed) {
+    ctx.fillStyle = '#0b0d1a';
+    ctx.fillRect(0, 0, preview.width, preview.height);
+    const transformOn = (mode & 0b0010) !== 0;
+
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.width = preview.width;
+    gridCanvas.height = preview.height;
+    const gctx = gridCanvas.getContext('2d');
+
+    gctx.fillStyle = '#101327';
+    gctx.fillRect(0, 0, preview.width, preview.height);
+
+    const cap = CFG.cols * CFG.rows;
+    for (let i = 0; i < cap; i++) {
+        const col = i % CFG.cols;
+        const row = Math.floor(i / CFG.cols);
+        const x = CFG.pad + col * CFG.tile;
+        const y = CFG.dataTop + row * CFG.tile;
+        const d = frameDigits[i] || null;
+        gctx.fillStyle = d ? map[d] : '#1f2445';
+        gctx.fillRect(x + 2, y + 2, CFG.tile - 4, CFG.tile - 4);
+    }
+
+    if (!transformOn) {
+        ctx.drawImage(gridCanvas, 0, 0);
+        return;
+    }
+
+    const angle = angleForFrame(frameIndex, seed) * Math.PI / 180;
+    ctx.save();
+    ctx.translate(preview.width / 2, preview.height / 2);
+    ctx.rotate(angle);
+    ctx.drawImage(gridCanvas, -preview.width / 2, -preview.height / 2);
+    ctx.restore();
+}
+
+function encodeMeta({ redundancy, frameCount, mode, seed, payloadLen, crc }) {
+    return [
+        '1', redundancy.toString(16),
+        frameCount.toString(16).padStart(2, '0'),
+        mode.toString(16),
+        seed.toString(16).padStart(4, '0'),
+        payloadLen.toString(16).padStart(4, '0'),
+        crc.toString(16).padStart(3, '0')
+    ].join('').slice(0, CFG.metaCount);
+}
+
+function calcCrc(hex) {
+    let s = 0;
+    for (const c of hex) s = (s + parseInt(c, 16)) & 0xfff;
+    return s;
+}
+
+function buildSlotOrder(totalSlots, frameCount, mode, seed) {
+    const perm = mode & 0b0001 ? shuffleWithSeed([...Array(frameCount).keys()], seed) : [...Array(frameCount).keys()];
+    const inv = Array(frameCount);
+    perm.forEach((f, i) => inv[f] = i);
+    return { perm, inv };
+}
+
+function avgColor(ctx, x, y, radius = 1) {
+    let r = 0, g = 0, b = 0, c = 0;
+    for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+            const sx = clamp(Math.round(x + dx), 0, preview.width - 1);
+            const sy = clamp(Math.round(y + dy), 0, preview.height - 1);
+            const p = ctx.getImageData(sx, sy, 1, 1).data;
+            r += p[0]; g += p[1]; b += p[2]; c++;
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animated Prism MVP</title>
@@ -123,7 +339,221 @@
           const chunk = repeatedHex.slice(i * frameCapacity, (i + 1) * frameCapacity);
           gif.addFrame(drawDataFrame(chunk, digitToColor), { delay: 100 });
         }
+    }
+    return { r: r / c, g: g / c, b: b / c };
+}
 
+function dist(a, b) {
+    return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
+}
+
+function classify(color, profiles, baseThreshold) {
+    let best = null;
+    for (const d of DIGITS) {
+        const p = profiles[d];
+        const d0 = dist(color, p.mean);
+        if (!best || d0 < best.d) best = { digit: d, d: d0, tol: Math.max(baseThreshold, p.sigma * 2.2 + 6) };
+    }
+    if (!best || best.d > best.tol) return null;
+    return { digit: best.digit, confidence: 1 - (best.d / best.tol) };
+}
+
+function transformPoint(x, y, angleDeg) {
+    const cx = preview.width / 2;
+    const cy = preview.height / 2;
+    const a = -angleDeg * Math.PI / 180;
+    const dx = x - cx;
+    const dy = y - cy;
+    return { x: dx * Math.cos(a) - dy * Math.sin(a) + cx, y: dx * Math.sin(a) + dy * Math.cos(a) + cy };
+}
+
+async function generateAnimatedPrism() {
+    const text = document.getElementById('message').value;
+    const redundancy = clamp(parseInt(document.getElementById('redundancy').value, 10) || 1, 1, 5);
+    const frameCount = clamp(parseInt(document.getElementById('frame-count').value, 10) || 18, 10, 50);
+    const distribution = document.getElementById('distribution').value;
+    const pureMode = document.getElementById('pure-mode').checked;
+    const lightTransform = document.getElementById('light-transform').checked;
+
+    let mode = distribution === 'shuffle' ? 1 : 0;
+    if (!pureMode && lightTransform) mode |= 0b0010;
+
+    const seed = randomSeed();
+    const map = buildMap(seed);
+
+    const payloadHex = hexFromText(text);
+    const repeated = payloadHex.split('').flatMap(d => Array(redundancy).fill(d));
+    const totalSlots = repeated.length;
+    const perFrameCapacity = CFG.cols * CFG.rows;
+    const neededPerFrame = Math.ceil(totalSlots / frameCount);
+
+    if (neededPerFrame > perFrameCapacity) {
+        document.getElementById('encode-log').textContent = `容量不足: 必要${neededPerFrame}/frame, 上限${perFrameCapacity}/frame`; return;
+    }
+
+    const crc = calcCrc(payloadHex);
+    const metaHex = encodeMeta({ redundancy, frameCount, mode, seed, payloadLen: payloadHex.length, crc });
+
+    const gif = new GIF({ workers: 2, quality: 8, workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js', width: preview.width, height: preview.height });
+
+    drawHeader(pctx, map, metaHex);
+    gif.addFrame(preview, { delay: 250 });
+
+    const { perm } = buildSlotOrder(totalSlots, frameCount, mode, seed);
+    const frames = Array.from({ length: frameCount }, () => Array(perFrameCapacity).fill(null));
+
+    for (let slot = 0; slot < totalSlots; slot++) {
+        const cycle = Math.floor(slot / frameCount);
+        const offset = slot % frameCount;
+        const frameIndex = perm[offset];
+        frames[frameIndex][cycle] = repeated[slot];
+    }
+
+    for (let f = 0; f < frameCount; f++) {
+        drawFrame(pctx, map, frames[f], mode, f, seed);
+        gif.addFrame(preview, { delay: 120 });
+    }
+
+    gif.on('finished', (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.getElementById('download-link');
+        a.href = url;
+        a.textContent = '✅ GIFをダウンロード';
+        a.style.display = 'inline-block';
+        document.getElementById('encode-log').textContent = [
+            `生成完了`,
+            `payloadHex: ${payloadHex.length}桁`,
+            `冗長化: x${redundancy}`,
+            `総スロット: ${totalSlots}`,
+            `分散: ${distribution}`,
+            `変形: ${(mode & 0b0010) ? '軽い回転ON' : 'OFF(純粋モード推奨)'}`
+        ].join('\n');
+    });
+    gif.render();
+}
+
+async function decodePrismStormOmega() {
+    const file = document.getElementById('gif-file-input').files[0];
+    if (!file) return alert('GIFを選択してください。');
+
+    const arrayBuffer = await file.arrayBuffer();
+    const gifFrames = decompressFrames(parseGIF(arrayBuffer), true);
+    if (gifFrames.length < 2) return alert('フレーム不足です。');
+
+    const canvases = gifFrames.map((f) => {
+        const c = document.createElement('canvas');
+        c.width = preview.width;
+        c.height = preview.height;
+        const cx = c.getContext('2d');
+        const img = cx.createImageData(c.width, c.height);
+        img.data.set(f.patch);
+        cx.putImageData(img, 0, 0);
+        return { c, cx };
+    });
+
+    const header = canvases[0].cx;
+    const profiles = {};
+    for (let i = 0; i < 16; i++) {
+        const d = DIGITS[i];
+        const x = 20 + i * 30 + CFG.swatchSize / 2;
+        const y = CFG.swatchTop + CFG.swatchSize / 2;
+        const samples = [];
+        for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) samples.push(avgColor(header, x + dx, y + dy, 0));
+        const mean = samples.reduce((a, b) => ({ r: a.r + b.r, g: a.g + b.g, b: a.b + b.b }), { r: 0, g: 0, b: 0 });
+        mean.r /= samples.length; mean.g /= samples.length; mean.b /= samples.length;
+        const sigma = Math.sqrt(samples.reduce((s, p) => s + Math.pow(dist(p, mean), 2), 0) / samples.length);
+        profiles[d] = { mean, sigma };
+    }
+
+    let minPair = Infinity;
+    const vals = Object.values(profiles);
+    for (let i = 0; i < vals.length; i++) for (let j = i + 1; j < vals.length; j++) minPair = Math.min(minPair, dist(vals[i].mean, vals[j].mean));
+    const baseThreshold = clamp(minPair * 0.38, 20, 90);
+
+    let metaHex = '';
+    for (let i = 0; i < CFG.metaCount; i++) {
+        const color = avgColor(header, 20 + i * 30 + 10, CFG.metaTop + 10, 1);
+        const cls = classify(color, profiles, baseThreshold);
+        metaHex += cls ? cls.digit : '0';
+    }
+
+    const redundancy = clamp(parseInt(metaHex[1], 16) || 1, 1, 5);
+    const frameCount = clamp(parseInt(metaHex.slice(2, 4), 16) || (gifFrames.length - 1), 1, gifFrames.length - 1);
+    const mode = parseInt(metaHex[4], 16) || 0;
+    const seed = parseInt(metaHex.slice(5, 9), 16) || 1;
+    const payloadLen = parseInt(metaHex.slice(9, 13), 16) || 0;
+    const crc = parseInt(metaHex.slice(13, 16), 16) || 0;
+
+    const totalSlots = payloadLen * redundancy;
+    const usedFrames = Math.min(frameCount, gifFrames.length - 1);
+    const maxCycle = Math.ceil(totalSlots / frameCount);
+    const slotVotes = Array.from({ length: totalSlots }, () => ({}));
+    const { inv } = buildSlotOrder(totalSlots, frameCount, mode, seed);
+
+    for (let f = 0; f < usedFrames; f++) {
+        const cx = canvases[f + 1].cx;
+        const angle = (mode & 0b0010) ? angleForFrame(f, seed) : 0;
+        for (let cycle = 0; cycle < maxCycle; cycle++) {
+            const slot = cycle * frameCount + inv[f];
+            if (slot >= totalSlots) continue;
+            const col = cycle % CFG.cols;
+            const row = Math.floor(cycle / CFG.cols);
+            let sx = CFG.pad + col * CFG.tile + CFG.tile / 2;
+            let sy = CFG.dataTop + row * CFG.tile + CFG.tile / 2;
+            if (mode & 0b0010) {
+                const p = transformPoint(sx, sy, angle);
+                sx = p.x; sy = p.y;
+            }
+            const color = avgColor(cx, sx, sy, 1);
+            const cls = classify(color, profiles, baseThreshold);
+            if (!cls) continue;
+            slotVotes[slot][cls.digit] = (slotVotes[slot][cls.digit] || 0) + Math.max(0.1, cls.confidence);
+        }
+    }
+
+    let repeatedHex = '';
+    let voteConf = 0;
+    let voteCount = 0;
+    for (const v of slotVotes) {
+        const keys = Object.keys(v);
+        if (!keys.length) { repeatedHex += '0'; continue; }
+        const total = keys.reduce((s, k) => s + v[k], 0);
+        const best = keys.reduce((a, b) => v[a] > v[b] ? a : b);
+        repeatedHex += best;
+        voteConf += v[best] / total;
+        voteCount++;
+    }
+
+    let payloadHex = '';
+    let redundancyConf = 0;
+    for (let i = 0; i < repeatedHex.length; i += redundancy) {
+        const chunk = repeatedHex.slice(i, i + redundancy).split('');
+        const tally = {};
+        chunk.forEach(d => tally[d] = (tally[d] || 0) + 1);
+        const best = Object.keys(tally).reduce((a, b) => (tally[a] || 0) >= (tally[b] || 0) ? a : b, '0');
+        payloadHex += best;
+        redundancyConf += (tally[best] || 0) / Math.max(1, chunk.length);
+    }
+
+    payloadHex = payloadHex.slice(0, payloadLen);
+    const decoded = textFromHex(payloadHex);
+    const crcNow = calcCrc(payloadHex);
+    const voteRate = voteCount ? Math.round((voteConf / voteCount) * 100) : 0;
+    const redRate = payloadLen ? Math.round((redundancyConf / payloadLen) * 100) : 0;
+    const overall = Math.round((voteRate * 0.55) + (redRate * 0.45));
+
+    document.getElementById('decoded-text').textContent = [
+        `Decoded: ${decoded || '(空文字/失敗)'}`,
+        `信頼度(投票率): ${overall}% [slot=${voteRate}% / redundancy=${redRate}%]`,
+        overall < 80 ? '⚠️ 自信が低い結果です。純粋モード+冗長化を増やして再生成推奨。' : '✅ 自信あり',
+        `CRC: ${crcNow === crc ? '一致' : '不一致'} (expected:${crc.toString(16)}, got:${crcNow.toString(16)})`,
+        `meta: r=${redundancy}, frames=${frameCount}, mode=${mode & 1 ? 'shuffle' : 'even'}${mode & 2 ? '+rotate' : ''}, threshold=${Math.round(baseThreshold)}`
+    ].join('\n');
+}
+
+document.getElementById('encode-btn').addEventListener('click', generateAnimatedPrism);
+document.getElementById('decode-btn').addEventListener('click', decodePrismStormOmega);
+</script>
         const blob = await renderGif(gif);
         const url = URL.createObjectURL(blob);
         els.download.href = url;
