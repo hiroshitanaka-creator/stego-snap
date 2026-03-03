@@ -11,6 +11,23 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 
 📍 **ロードマップ**: [マイルストーン.md](./マイルストーン.md)
 
+📍 **v1.0ドキュメント**: [CHANGELOG](./CHANGELOG.md) / [SECURITY](./SECURITY.md) / [THREAT_MODEL](./THREAT_MODEL.md) / [LIMITATIONS](./LIMITATIONS.md)
+
+## ✅ Tool Status Matrix (v1.0)
+
+| Tool | File | Current State | Basis |
+|---|---|---|---|
+| Stego Snap (LSB) | `index.html` | **Stable** | In-page Encode/Decode flow exists and is documented as compression-fragile. |
+| Multi-Layer Stego | `multi-layer-stego.html` | **Stable** | Encode/Decode UI exists with optional encryption and integrity-oriented messaging. |
+| Noise Talk | `noise.html` | **Experimental** | Encoder-centric tool; in-page decode roundtrip is not provided. |
+| Prism Code | `prism.html` | **Experimental** | Encoder-centric tool; decode path is external/code-assisted rather than in-page. |
+| Animated Prism | `animated-prism.html` | **Experimental** | Prototype-level implementation; UI/logic completeness is not guaranteed. |
+| Disaster Mesh Crypto | `disaster-mesh-complete.html` | **Experimental** | Included as standalone crypto experiment, not part of primary stego flow. |
+
+**State policy**:
+- **Stable** = v1.0 scope with maintained, documented behavior.
+- **Experimental** = prototype/limited scope; behavior may change without compatibility guarantees.
+
 ---
 
 ## 🛠️ Included Tools (収録ツール)
@@ -58,14 +75,14 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 * **Tech**: GIF.js, Multi-layer Adversarial Noise, Session-based Cryptography
 * **Function**: Hides messages in animated GIFs with rotating, warping tiles and sophisticated AI-fooling techniques. Each generation uses a unique color mapping key.
 * **Philosophy**: *"Just closing your bedroom door." (自分の部屋のドアは閉める。)* - Privacy through coexistence, not confrontation.
-* **Result**: AI-resistant steganography that survives compression and visual analysis. Three layers of adversarial noise defeat pattern recognition.
+* **Result**: Prototype stage. Decoder logic exists but behavior is not yet guaranteed across environments (see Tool Status Matrix).
 
 **技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
 **機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
 **哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
 **結果**: AI耐性を持つステガノグラフィ。圧縮と視覚解析に耐える。3層のアドバーサリアルノイズがパターン認識を妨害。
 
-#### 🔐 Advanced Features:
+#### 🔐 Prototype Features (subject to change):
 - **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
 - **Multi-layer Adversarial Noise**:
   - Layer 1: High-frequency noise (AI vision model fooling)
