@@ -54,29 +54,16 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 
 ---
 
-### 4. 🌈✨ Animated Prism Storm (AI-Resistant Animated Steganography)
-* **Tech**: GIF.js, Multi-layer Adversarial Noise, Session-based Cryptography
-* **Function**: Hides messages in animated GIFs with rotating, warping tiles and sophisticated AI-fooling techniques. Each generation uses a unique color mapping key.
-* **Philosophy**: *"Just closing your bedroom door." (自分の部屋のドアは閉める。)* - Privacy through coexistence, not confrontation.
-* **Result**: AI-resistant steganography that survives compression and visual analysis. Three layers of adversarial noise defeat pattern recognition.
+### 4. 🌈✨ Animated Prism MVP (GIF Encode/Decode)
+* **Tech**: GIF.js (`0.2.0`), gifuct-js (`2.1.2`), Canvas API
+* **Function**: Encodes text as UTF-16 hex color tiles, writes a machine-readable header frame (16-color map + parameters), splits payload across GIF data frames, and decodes from uploaded GIF.
+* **Error Handling**: Redundancy + majority voting, frame/file size limits to reduce crashes on mobile.
+* **Result**: A practical local MVP that can round-trip encode → save → upload → decode on the same device.
 
-**技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
-**機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
-**哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
-**結果**: AI耐性を持つステガノグラフィ。圧縮と視覚解析に耐える。3層のアドバーサリアルノイズがパターン認識を妨害。
-
-#### 🔐 Advanced Features:
-- **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
-- **Multi-layer Adversarial Noise**:
-  - Layer 1: High-frequency noise (AI vision model fooling)
-  - Layer 2: Frequency domain attack (pattern recognition interference)
-  - Layer 3: Edge detection sabotage (gradient noise)
-- **Non-linear Transformations**: Rotation, warping, chromatic aberration
-- **Reed-Solomon Style Error Correction**: Adjustable redundancy levels (1-5)
-- **Frame Distribution**: Message spread across 10-50 configurable frames
-- **Full Decoder**: Frame analysis with majority voting for error correction
-
-🔗 **[Try Animated Prism Storm](https://hiroshitanaka-creator.github.io/stego-snap/animated-prism.html)**
+**技術**: GIF.js（`0.2.0`）、gifuct-js（`2.1.2`）、Canvas API
+**機能**: テキストをUTF-16→hex→色タイルへ変換し、ヘッダーフレーム（16色マップ+パラメータ）を埋め込み、データを複数フレームに分散してGIF化。アップロードしたGIFから復号可能。
+**誤り対策**: 冗長化 + 多数決、フレーム数/ファイルサイズ上限でモバイルのメモリ落ちを抑制。
+**結果**: 同一端末での往復（encode→保存→再アップロード→decode）を狙った実用MVP。
 
 ---
 
@@ -128,32 +115,26 @@ Write and EXECUTE Python code to:
 3. **Output**: A colorful grid image
 4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
 
-### Animated Prism Storm Algorithm
+### Animated Prism MVP Algorithm
 
-1. **Input**: Secret message (e.g., "秘密メッセージ: 助けて、負傷者2名、北側入口")
-2. **Session Key Generation**:
-   - Fisher-Yates shuffle of 16 base colors
-   - Creates unique color mapping for each generation
-   - Embedded in header frame for decoder recovery
-3. **Encoding**:
-   - Text → UTF-16 → 4-digit hex per character
-   - Apply error correction (redundancy: 1-5x each digit)
-   - Distribute across N frames (10-50 configurable)
-4. **Adversarial Defense**:
-   - Layer 1: 8000+ high-frequency noise pixels
-   - Layer 2: Frequency domain spiral patterns
-   - Layer 3: Radial gradient edge detection sabotage
-5. **Transformation**:
-   - Per-frame rotation (0° to 360° / frame_count)
-   - Sinusoidal scaling (±10% based on intensity)
-   - Warp effects (sin/cos displacement per tile)
-   - Chromatic aberration simulation
-6. **Output**: Animated GIF with embedded header frame
-7. **Decoding**:
-   - Extract color map from header frame
-   - Analyze all frames for tile colors
-   - Majority voting for error correction
-   - Reverse UTF-16 decode
+1. **Input**: Text string
+2. **Session Map Generation**:
+   - Fisher-Yates shuffle over a 16-color base palette
+   - Assigns hex digits (`0-f`) to shuffled colors per GIF
+3. **Header Frame**:
+   - Row 1 stores the 16-color map tiles (`0-f` order)
+   - Following tiles store machine-readable metadata (magic, payload length, redundancy, frame count)
+4. **Data Frames**:
+   - Text → UTF-16 → hex nibbles
+   - Apply redundancy by repeating payload (`1-5x`)
+   - Split across multiple frames as color tiles
+5. **Decoding**:
+   - Parse header frame to recover map + parameters
+   - Convert each data-frame tile color back to hex (nearest color)
+   - Run majority voting across redundant copies
+   - Decode UTF-16 hex back to string
+6. **Safety Limits**:
+   - Max frame count and file-size guards to reduce mobile crashes (especially iOS Safari)
 
 ---
 
