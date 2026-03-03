@@ -228,8 +228,8 @@
 
         <!-- モード切り替えボタン -->
         <div class="mode-switch">
-            <button class="mode-btn active" onclick="switchMode('encode')">🔒 画像に埋め込む (Encode)</button>
-            <button class="mode-btn" onclick="switchMode('decode')">🔓 メッセージを読む (Decode)</button>
+            <button class="mode-btn active" onclick="switchMode('encode', this)">🔒 画像に埋め込む (Encode)</button>
+            <button class="mode-btn" onclick="switchMode('decode', this)">🔓 メッセージを読む (Decode)</button>
         </div>
 
         <!-- エンコードセクション -->
@@ -303,14 +303,16 @@
         let currentMode = 'encode';
 
         // モード切り替え
-        function switchMode(mode) {
+        function switchMode(mode, btn) {
             currentMode = mode;
 
             // ボタンのアクティブ状態を切り替え
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (btn) {
+                btn.classList.add('active');
+            }
 
             // セクションの表示切り替え
             document.querySelectorAll('.section').forEach(section => {
@@ -449,16 +451,27 @@
                     return;
                 }
 
-                // 3. ピクセルを1つずつ書き換える（ここが核心！LSBステガノグラフィ）
-                for (let i = 0; i < binary.length; i++) {
-                    // 現在のピクセルの値（0〜255）
-                    let originalValue = data[i];
+                // 3. ピクセルを書き換え（RGBのみ、Alphaは不変）
+                const originalAlpha = [];
+                for (let i = 3; i < data.length; i += 4) {
+                    originalAlpha.push(data[i]);
+                }
 
-                    // 埋め込みたいビット（0 か 1）
-                    let secretBit = parseInt(binary[i]);
+                let bitIndex = 0;
+                for (let i = 0; i < data.length && bitIndex < binary.length; i += 4) {
+                    for (let c = 0; c < 3 && bitIndex < binary.length; c++) {
+                        const originalValue = data[i + c];
+                        const secretBit = parseInt(binary[bitIndex], 10);
+                        data[i + c] = (originalValue & 254) | secretBit;
+                        bitIndex++;
+                    }
+                }
 
-                    // 論理演算：最下位ビットを0にして（AND 254）、秘密のビットを足す（OR）
-                    data[i] = (originalValue & 254) | secretBit;
+                let alphaChangedCount = 0;
+                for (let i = 3, idx = 0; i < data.length; i += 4, idx++) {
+                    if (data[i] !== originalAlpha[idx]) {
+                        alphaChangedCount++;
+                    }
                 }
 
                 // 4. 書き換えたデータを画像に戻す
@@ -473,6 +486,8 @@
                             <h3>✅ 埋め込み完了！</h3>
                             <p>秘密のメッセージが画像に埋め込まれました。</p>
                             <p><strong>メッセージ長:</strong> ${message.length} 文字 (${binary.length} ビット)</p>
+                            <p><strong>使用量:</strong> ${binary.length} / ${maxBits} ビット (${((binary.length / maxBits) * 100).toFixed(2)}%)</p>
+                            <p><strong>Alpha変更ピクセル数:</strong> ${alphaChangedCount}（RGBのみを変更）</p>
                             <p style="margin-top: 10px; color: #666; font-size: 0.9em;">📱 スマホの方は画像を長押しして保存してください</p>
                             <a href="${url}" download="stego-image.png" class="btn" style="display: inline-block; width: auto; padding: 15px 40px; text-decoration: none; margin-top: 10px;">
                                 💾 ステガノ画像をダウンロード
@@ -485,6 +500,49 @@
             } catch (error) {
                 showError('encode', 'エラーが発生しました: ' + error.message);
             }
+        }
+
+
+        // RGBA配列からLSBビット列を抽出（RGBのみ or レガシー全チャンネル）
+        function extractBits(data, rgbOnly = true) {
+            const bits = [];
+            const step = rgbOnly ? 4 : 1;
+            const channelsPerPixel = rgbOnly ? 3 : 4;
+
+            for (let i = 0; i < data.length; i += step) {
+                const limit = rgbOnly ? 3 : channelsPerPixel;
+                for (let c = 0; c < limit; c++) {
+                    const index = i + c;
+                    if (index >= data.length) break;
+                    bits.push(data[index] & 1);
+                }
+            }
+            return bits;
+        }
+
+        // ビット列をUTF-16文字列として復元
+        function decodeBitsToText(bits) {
+            let chunk = "";
+            let output = "";
+            let bitsCollected = 0;
+            let terminated = false;
+
+            for (let i = 0; i < bits.length; i++) {
+                chunk += bits[i];
+                bitsCollected++;
+
+                if (chunk.length === 16) {
+                    const charCode = parseInt(chunk, 2);
+                    if (charCode === 0) {
+                        terminated = true;
+                        break;
+                    }
+                    output += String.fromCharCode(charCode);
+                    chunk = "";
+                }
+            }
+
+            return { output, bitsCollected, terminated };
         }
 
         // 🔓 復号（読み取り）ロジック
@@ -509,31 +567,24 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
-                let binary = "";
-                let output = "";
-                let bitsCollected = 0;
+                const rgbBits = extractBits(data, true);
+                const rgbResult = decodeBitsToText(rgbBits);
 
-                // 全ピクセルを走査して、最下位ビット（LSB）を拾い集める
-                for (let i = 0; i < data.length; i++) {
-                    // 最後の1桁を取り出す (AND 1)
-                    const bit = data[i] & 1;
-                    binary += bit;
-                    bitsCollected++;
+                let decodeResult = rgbResult;
+                let decodeMethod = 'RGB (3ch)';
 
-                    // 16ビット（1文字分）たまったら文字に戻す（UTF-16対応）
-                    if (binary.length === 16) {
-                        const charCode = parseInt(binary, 2);
-
-                        // 終了の合図（00000000 00000000 = ヌル文字）が出たら終わり
-                        if (charCode === 0) break;
-
-                        output += String.fromCharCode(charCode);
-                        binary = ""; // リセット
+                // 後方互換: 旧方式（RGBA全チャンネル）をフォールバック
+                if (!rgbResult.terminated || rgbResult.output.length === 0) {
+                    const legacyBits = extractBits(data, false);
+                    const legacyResult = decodeBitsToText(legacyBits);
+                    if (legacyResult.terminated && legacyResult.output.length > 0) {
+                        decodeResult = legacyResult;
+                        decodeMethod = 'Legacy (RGBA 4ch)';
                     }
                 }
 
                 // メッセージが見つからなかった場合
-                if (output.length === 0) {
+                if (!decodeResult.terminated || decodeResult.output.length === 0) {
                     showError('decode', '隠されたメッセージが見つかりませんでした。これはステガノ画像ではない可能性があります。');
                     return;
                 }
@@ -544,9 +595,10 @@
                     <div class="success">
                         <h3>🔓 解読されたメッセージ:</h3>
                         <div class="result">
-                            <p style="font-size: 1.2em; color: #333; white-space: pre-wrap; line-height: 1.6;">${escapeHtml(output)}</p>
+                            <p style="font-size: 1.2em; color: #333; white-space: pre-wrap; line-height: 1.6;">${escapeHtml(decodeResult.output)}</p>
                         </div>
-                        <p style="margin-top: 10px;"><strong>メッセージ長:</strong> ${output.length} 文字 (${bitsCollected} ビット読み取り)</p>
+                        <p style="margin-top: 10px;"><strong>メッセージ長:</strong> ${decodeResult.output.length} 文字 (${decodeResult.bitsCollected} ビット読み取り)</p>
+                        <p><strong>デコード方式:</strong> ${decodeMethod}</p>
                     </div>
                 `;
                 resultDiv.classList.remove('hidden');
