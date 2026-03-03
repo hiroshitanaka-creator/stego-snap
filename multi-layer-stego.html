@@ -688,20 +688,16 @@
         </div>
     </div>
 
-<script>
+<script type="module">
+import { encodeRgbLsbBits, decodeRgbLsbBits } from './src/lsb.js';
+import { HEX_PALETTE as hexPalette, bytesToHex, hexToBytes, findClosestHexColor } from './src/prism.js';
+import { bytesToBinary as noiseBytesToBinary, binaryToBytes as noiseBinaryToBytes } from './src/noiseGrid.js';
+import { VERSION, createFrame, parseFrame } from './src/framing/mlsg.js';
+import { encryptMessage, decryptMessage } from './src/crypto/aesGcm.js';
+
 // =============================================================================
 // CONSTANTS & MAGIC
 // =============================================================================
-const MAGIC = 'MLSG'; // Multi-Layer SteGo
-const VERSION = 1;
-
-// Prism color palette
-const hexPalette = {
-    '0': '#000000', '1': '#FF0000', '2': '#00FF00', '3': '#0000FF',
-    '4': '#FFFF00', '5': '#00FFFF', '6': '#FF00FF', '7': '#C0C0C0',
-    '8': '#808080', '9': '#800000', 'a': '#808000', 'b': '#008000',
-    'c': '#800080', 'd': '#008080', 'e': '#000080', 'f': '#FFFFFF'
-};
 
 // =============================================================================
 // GLOBAL STATE
@@ -717,180 +713,6 @@ const layers = {
     noise: true,
     adversarial: true
 };
-
-// =============================================================================
-// AES-256-GCM ENCRYPTION (WebCrypto)
-// =============================================================================
-async function deriveKey(passphrase, salt) {
-    const enc = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(passphrase),
-        'PBKDF2',
-        false,
-        ['deriveKey']
-    );
-    return crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: salt,
-            iterations: 100000,
-            hash: 'SHA-256'
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-    );
-}
-
-async function encryptMessage(plaintext, passphrase) {
-    const enc = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await deriveKey(passphrase, salt);
-
-    const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv: iv },
-        key,
-        enc.encode(plaintext)
-    );
-
-    // Combine: salt (16) + iv (12) + ciphertext
-    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-    combined.set(salt, 0);
-    combined.set(iv, salt.length);
-    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
-
-    return toBase64(combined);
-}
-
-// Safe base64 for large data (chunked to avoid stack overflow)
-function toBase64(u8) {
-    let s = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < u8.length; i += chunk) {
-        s += String.fromCharCode(...u8.subarray(i, i + chunk));
-    }
-    return btoa(s);
-}
-
-async function decryptMessage(ciphertextB64, passphrase) {
-    try {
-        const combined = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
-
-        const salt = combined.slice(0, 16);
-        const iv = combined.slice(16, 28);
-        const ciphertext = combined.slice(28);
-
-        const key = await deriveKey(passphrase, salt);
-
-        const decrypted = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv: iv },
-            key,
-            ciphertext
-        );
-
-        return new TextDecoder().decode(decrypted);
-    } catch (e) {
-        return null; // Decryption failed
-    }
-}
-
-// =============================================================================
-// CRC32 (IEEE 802.3 polynomial)
-// =============================================================================
-const CRC32_TABLE = (() => {
-    const table = new Uint32Array(256);
-    for (let i = 0; i < 256; i++) {
-        let crc = i;
-        for (let j = 0; j < 8; j++) {
-            crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1);
-        }
-        table[i] = crc >>> 0;
-    }
-    return table;
-})();
-
-function crc32(bytes) {
-    let crc = 0xFFFFFFFF;
-    for (let i = 0; i < bytes.length; i++) {
-        crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-    }
-    return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-// =============================================================================
-// FRAMING PROTOCOL
-// Frame: MLSG (4) + version (1) + length (4) + crc32 (4) + payload (N)
-// =============================================================================
-function createFrame(payload) {
-    const payloadBytes = new TextEncoder().encode(payload);
-    const frame = new Uint8Array(4 + 1 + 4 + 4 + payloadBytes.length);
-
-    // Magic: MLSG
-    frame[0] = 0x4D; // M
-    frame[1] = 0x4C; // L
-    frame[2] = 0x53; // S
-    frame[3] = 0x47; // G
-
-    // Version
-    frame[4] = VERSION;
-
-    // Length (big-endian)
-    const len = payloadBytes.length;
-    frame[5] = (len >> 24) & 0xff;
-    frame[6] = (len >> 16) & 0xff;
-    frame[7] = (len >> 8) & 0xff;
-    frame[8] = len & 0xff;
-
-    // CRC32 of payload (big-endian)
-    const checksum = crc32(payloadBytes);
-    frame[9] = (checksum >> 24) & 0xff;
-    frame[10] = (checksum >> 16) & 0xff;
-    frame[11] = (checksum >> 8) & 0xff;
-    frame[12] = checksum & 0xff;
-
-    // Payload
-    frame.set(payloadBytes, 13);
-
-    return frame;
-}
-
-function parseFrame(bytes) {
-    // Minimum frame size: header (13) + at least 1 byte payload
-    if (bytes.length < 13) return null;
-
-    // Check magic: MLSG
-    if (bytes[0] !== 0x4D || bytes[1] !== 0x4C ||
-        bytes[2] !== 0x53 || bytes[3] !== 0x47) {
-        return null;
-    }
-
-    // Check version
-    const version = bytes[4];
-    if (version !== VERSION) return null;
-
-    // Parse length
-    const len = (bytes[5] << 24) | (bytes[6] << 16) | (bytes[7] << 8) | bytes[8];
-    if (len <= 0 || len > 1000000) return null; // Sanity check
-    if (bytes.length < 13 + len) return null;
-
-    // Parse stored CRC32
-    const storedCrc = ((bytes[9] << 24) | (bytes[10] << 16) |
-                       (bytes[11] << 8) | bytes[12]) >>> 0;
-
-    // Extract and verify payload
-    const payload = bytes.slice(13, 13 + len);
-    const computedCrc = crc32(payload);
-
-    if (storedCrc !== computedCrc) {
-        console.warn(`CRC mismatch: stored=${storedCrc.toString(16)}, computed=${computedCrc.toString(16)}`);
-        return null; // Corrupted frame
-    }
-
-    return new TextDecoder().decode(payload);
-}
 
 // =============================================================================
 // MODE & LAYER TOGGLE (FIXED: no event dependency)
@@ -1027,10 +849,7 @@ async function encodeMultiLayer() {
 
         // Calculate dimensions
         // Noise grid
-        let noiseBinary = '';
-        for (const byte of framedData) {
-            noiseBinary += byte.toString(2).padStart(8, '0');
-        }
+        const noiseBinary = noiseBytesToBinary(framedData);
         const noiseColumns = Math.ceil(Math.sqrt(noiseBinary.length));
         const noiseRows = Math.ceil(noiseBinary.length / noiseColumns);
         const noisePixelSize = 20;
@@ -1038,10 +857,7 @@ async function encodeMultiLayer() {
         const noiseHeight = noiseRows * noisePixelSize + 70;
 
         // Prism grid (hex encoding of framed data)
-        let prismHex = '';
-        for (const byte of framedData) {
-            prismHex += byte.toString(16).padStart(2, '0');
-        }
+        const prismHex = bytesToHex(framedData);
         const prismColumns = Math.ceil(Math.sqrt(prismHex.length));
         const prismRows = Math.ceil(prismHex.length / prismColumns);
         const prismPixelSize = 25;
@@ -1164,33 +980,17 @@ async function encodeMultiLayer() {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // Convert framed data to binary
-            let binary = '';
-            for (const byte of framedData) {
-                binary += byte.toString(2).padStart(8, '0');
-            }
+            const binary = noiseBytesToBinary(framedData);
 
-            // Check capacity (RGB only, skip alpha)
-            const maxBits = (data.length / 4) * 3;
-            if (binary.length > maxBits) {
-                showError('encode', 'Message too long for this image!');
+            try {
+                const encoded = encodeRgbLsbBits(data, binary);
+                data.set(encoded);
+                ctx.putImageData(imageData, 0, 0);
+            } catch (error) {
+                showError('encode', error.message);
                 progress.classList.remove('active');
                 return;
             }
-
-            // Embed in LSB (RGB only, skip alpha channel)
-            for (let i = 0; i < binary.length; i++) {
-                const secretBit = parseInt(binary[i]);
-                const pixel = Math.floor(i / 3);
-                const channel = i % 3; // 0:R, 1:G, 2:B
-                const idx = pixel * 4 + channel;
-
-                if (idx < data.length) {
-                    data[idx] = (data[idx] & 254) | secretBit;
-                }
-            }
-
-            ctx.putImageData(imageData, 0, 0);
         }
 
         updateStep('step-lsb', 'done');
@@ -1456,12 +1256,7 @@ function decodeNoiseLayer(ctx, width, height) {
     }
 
     // Convert to bytes and parse frame
-    const bytes = [];
-    for (let i = 0; i < binary.length - 7; i += 8) {
-        bytes.push(parseInt(binary.substr(i, 8), 2));
-    }
-
-    const payload = parseFrame(new Uint8Array(bytes));
+    const payload = parseFrame(noiseBinaryToBytes(binary));
     if (payload) {
         result.success = true;
         result.raw = payload;
@@ -1541,12 +1336,7 @@ function decodePrismLayer(ctx, width, height) {
     }
 
     // Convert hex to bytes
-    const bytes = [];
-    for (let i = 0; i < hexString.length - 1; i += 2) {
-        bytes.push(parseInt(hexString.substr(i, 2), 16));
-    }
-
-    const payload = parseFrame(new Uint8Array(bytes));
+    const payload = parseFrame(hexToBytes(hexString));
     if (payload) {
         result.success = true;
         result.raw = payload;
@@ -1564,24 +1354,8 @@ async function decodeLSBLayer(ctx, width, height) {
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
 
-    // Extract bits from RGB only (skip alpha)
-    let binary = '';
-    const maxBits = 500000; // increased for large images
-
-    for (let pixel = 0; pixel < data.length / 4 && binary.length < maxBits; pixel++) {
-        for (let channel = 0; channel < 3; channel++) {
-            const idx = pixel * 4 + channel;
-            binary += data[idx] & 1;
-        }
-    }
-
-    // Convert to bytes
-    const bytes = [];
-    for (let i = 0; i < binary.length - 7; i += 8) {
-        bytes.push(parseInt(binary.substr(i, 8), 2));
-    }
-
-    const payload = parseFrame(new Uint8Array(bytes));
+    const binary = decodeRgbLsbBits(data, 500000);
+    const payload = parseFrame(noiseBinaryToBytes(binary));
     if (payload) {
         result.success = true;
         result.raw = payload;
@@ -1592,29 +1366,6 @@ async function decodeLSBLayer(ctx, width, height) {
     return result;
 }
 
-function findClosestHexColor(r, g, b) {
-    const colors = {
-        '0': [0, 0, 0], '1': [255, 0, 0], '2': [0, 255, 0], '3': [0, 0, 255],
-        '4': [255, 255, 0], '5': [0, 255, 255], '6': [255, 0, 255], '7': [192, 192, 192],
-        '8': [128, 128, 128], '9': [128, 0, 0], 'a': [128, 128, 0], 'b': [0, 128, 0],
-        'c': [128, 0, 128], 'd': [0, 128, 128], 'e': [0, 0, 128], 'f': [255, 255, 255]
-    };
-
-    let minDist = Infinity;
-    let closest = null;
-
-    for (const [hex, [cr, cg, cb]] of Object.entries(colors)) {
-        const dist = Math.sqrt((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2);
-        if (dist < minDist) {
-            minDist = dist;
-            closest = hex;
-        }
-    }
-
-    // PNG should be lossless, so tight threshold (30) is fine
-    // Background #1a1a1a (26,26,26) is ~45 from black, so 30 rejects it
-    return minDist < 30 ? closest : null;
-}
 
 function displayDecodeResults(results, votingResult, passphrase) {
     const successCount = Object.values(results).filter(r => r.success).length;
@@ -1710,6 +1461,11 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+window.switchMode = switchMode;
+window.toggleLayer = toggleLayer;
+window.encodeMultiLayer = encodeMultiLayer;
+window.decodeMultiLayer = decodeMultiLayer;
 </script>
 </body>
 </html>

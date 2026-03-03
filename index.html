@@ -297,7 +297,14 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import {
+            utf16ToBinary,
+            binaryToUtf16,
+            encodeRgbLsbBits,
+            decodeRgbLsbBits,
+            getRgbLsbCapacityBits
+        } from './src/lsb.js';
         // グローバル変数
         let currentImage = null;
         let currentMode = 'encode';
@@ -435,31 +442,18 @@
 
                 // 1. テキストを「0」と「1」のバイナリに変換する
                 // UTF-16対応で16ビット単位、最後にヌル終端文字（00000000 00000000）を追加
-                let binary = "";
-                for (let i = 0; i < message.length; i++) {
-                    // 文字を16ビット（2バイト）の2進数に変換（日本語・絵文字対応）
-                    binary += message.charCodeAt(i).toString(2).padStart(16, '0');
-                }
-                binary += "0000000000000000"; // 終了の合図（ヌル文字）
+                const binary = utf16ToBinary(message, true);
 
                 // 2. 画像の容量チェック
-                const maxBits = (data.length / 4) * 3; // RGBの3チャンネル
+                const maxBits = getRgbLsbCapacityBits(data); // RGBの3チャンネル
                 if (binary.length > maxBits) {
                     showError('encode', '文章が長すぎて、この画像には入りきりません！もっと大きな画像を使うか、短いメッセージにしてください。');
                     return;
                 }
 
                 // 3. ピクセルを1つずつ書き換える（ここが核心！LSBステガノグラフィ）
-                for (let i = 0; i < binary.length; i++) {
-                    // 現在のピクセルの値（0〜255）
-                    let originalValue = data[i];
-
-                    // 埋め込みたいビット（0 か 1）
-                    let secretBit = parseInt(binary[i]);
-
-                    // 論理演算：最下位ビットを0にして（AND 254）、秘密のビットを足す（OR）
-                    data[i] = (originalValue & 254) | secretBit;
-                }
+                const encoded = encodeRgbLsbBits(data, binary);
+                data.set(encoded);
 
                 // 4. 書き換えたデータを画像に戻す
                 ctx.putImageData(imageData, 0, 0);
@@ -509,28 +503,11 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
-                let binary = "";
                 let output = "";
-                let bitsCollected = 0;
-
-                // 全ピクセルを走査して、最下位ビット（LSB）を拾い集める
-                for (let i = 0; i < data.length; i++) {
-                    // 最後の1桁を取り出す (AND 1)
-                    const bit = data[i] & 1;
-                    binary += bit;
-                    bitsCollected++;
-
-                    // 16ビット（1文字分）たまったら文字に戻す（UTF-16対応）
-                    if (binary.length === 16) {
-                        const charCode = parseInt(binary, 2);
-
-                        // 終了の合図（00000000 00000000 = ヌル文字）が出たら終わり
-                        if (charCode === 0) break;
-
-                        output += String.fromCharCode(charCode);
-                        binary = ""; // リセット
-                    }
-                }
+                const bits = decodeRgbLsbBits(data);
+                const decoded = binaryToUtf16(bits, true);
+                output = decoded.text;
+                const bitsCollected = decoded.bitsRead;
 
                 // メッセージが見つからなかった場合
                 if (output.length === 0) {
@@ -573,6 +550,10 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        window.switchMode = switchMode;
+        window.encodeMessage = encodeMessage;
+        window.decodeMessage = decodeMessage;
     </script>
 </body>
 </html>
