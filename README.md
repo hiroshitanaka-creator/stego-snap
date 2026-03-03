@@ -1,56 +1,75 @@
-# 📦 AI-Proof Toy Box (Grok Challenge)
+# 📦 Stego Snap Toy Box
+
+[![Unit Tests](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml/badge.svg)](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml)
 
 **"Visible to Humans, Invisible to AI."**
 （人間には見えて、AIには見えない。）
+**"Visible to Humans, Harder for Casual Vision-Only Reading."**
+（人間には見えて、ぱっと見では読み取りづらい表現へ。）
 
-This repository is a collection of "Anti-AI Steganography tools" created entirely on an iPhone.
-These tools were used to challenge and successfully defeat modern AI vision models (like Grok and GPT-4o) in a decoding battle.
+This repository is a collection of browser-based steganography/encoding experiments built as static pages.
+All tools run in the browser and are designed for local experimentation.
 
-このリポジトリは、iPhoneのみで開発された「対AIステガノグラフィ・ツール集」です。
-最新のAI（GrokやGPT-4o）に対し、「AIが認識できない情報」を作成し、解読競争に勝利するために作られました。
+このリポジトリは、ブラウザだけで動くステガノグラフィ/エンコード実験ツール集です。
 
 📍 **ロードマップ**: [マイルストーン.md](./マイルストーン.md)
+
+📍 **v1.0ドキュメント**: [CHANGELOG](./CHANGELOG.md) / [SECURITY](./SECURITY.md) / [THREAT_MODEL](./THREAT_MODEL.md) / [LIMITATIONS](./LIMITATIONS.md)
+
+## ✅ Tool Status Matrix (v1.0)
+
+| Tool | File | Current State | Basis |
+|---|---|---|---|
+| Stego Snap (LSB) | `index.html` | **Stable** | In-page Encode/Decode flow exists and is documented as compression-fragile. |
+| Multi-Layer Stego | `multi-layer-stego.html` | **Stable** | Encode/Decode UI exists with optional encryption and integrity-oriented messaging. |
+| Noise Talk | `noise.html` | **Experimental** | Encoder-centric tool; in-page decode roundtrip is not provided. |
+| Prism Code | `prism.html` | **Experimental** | Encoder-centric tool; decode path is external/code-assisted rather than in-page. |
+| Animated Prism | `animated-prism.html` | **Experimental** | Prototype-level implementation; UI/logic completeness is not guaranteed. |
+| Disaster Mesh Crypto | `disaster-mesh-complete.html` | **Experimental** | Included as standalone crypto experiment, not part of primary stego flow. |
+
+**State policy**:
+- **Stable** = v1.0 scope with maintained, documented behavior.
+- **Experimental** = prototype/limited scope; behavior may change without compatibility guarantees.
 
 ---
 
 ## 🛠️ Included Tools (収録ツール)
 
-### 1. 🕵️‍♂️ Stego Snap (LSB Steganography)
-* **Tech**: Canvas API, Bit Manipulation
-* **Function**: Hides text inside the Least Significant Bits of an image.
-* **Result**: Invisible to human eyes, readable by code. (Fragile against compression)
+### 1. 🕵️‍♂️ Stego Snap (`index.html`)
+- **Tech**: Canvas API, LSB bit embedding
+- **What it does**: Hides UTF-16 text into image pixel LSBs and exports PNG.
+- **Current status**: Works for local roundtrip when pixel values are preserved.
 
-**技術**: Canvas API、ビット操作
-**機能**: 画像の最下位ビット（LSB）にテキストを埋め込む。
-**結果**: 人間の目には不可視、コードで読み取り可能。（圧縮に脆弱）
+### 2. 🔊 Noise Talk (`noise.html`)
+- **Tech**: Binary grid visualization
+- **What it does**: Converts text to black/white grid image with grid size header.
+- **Current status**: Designed for script/pixel reading rather than pure eyeballing.
 
-🔗 **[Try Stego Snap](https://hiroshitanaka-creator.github.io/stego-snap/)**
+### 3. 🌈 Prism Code (`prism.html`)
+- **Tech**: UTF-16 hex + fixed 16-color palette
+- **What it does**: Encodes text into color tiles.
+- **Current status**: Deterministic encoding; decoding requires the same color mapping.
 
----
-
-### 2. 🔊 Noise Talk: No Excuse Mode (Binary Grid Art)
-* **Tech**: Binary Visualization
-* **Function**: Converts text into a black-and-white grid pattern. **The grid size is explicitly written in the image header**, leaving AI with no excuse to fail.
-* **Result**: AI vision models get confused by the grid and hallucinate meanings based on context (e.g., username), failing to decode accurately without code execution.
-
-**技術**: バイナリ可視化
-**機能**: テキストを白黒グリッドパターンに変換。**グリッドサイズは画像ヘッダーに明示的に記載**され、AIに失敗の言い訳を与えない。
-**結果**: AIビジョンモデルはグリッドに混乱し、コンテキスト（ユーザー名など）から意味を幻覚し、コード実行なしでは正確にデコードできない。
-
-🔗 **[Try Noise Talk](https://hiroshitanaka-creator.github.io/stego-snap/noise.html)**
+### 4. 🌈✨ Animated Prism (`animated-prism.html`) — **Experimental**
+- **Status**: Prototype / experimental page.
+- **Note**: Not treated as stable production-grade roundtrip in this repository.
 
 ---
 
-### 3. 🌈 Prism Code (UTF-16 Hex Color Encoder)
-* **Tech**: Color Mapping, UTF-16
-* **Function**: Encodes Japanese text into colored tiles.
-* **Result**: The ultimate cipher. AI vision alone cannot solve it. It forces AI to write Python code to see the truth.
+## 🧪 Experimental Features
 
-**技術**: カラーマッピング、UTF-16
-**機能**: 日本語テキストをカラータイルにエンコード。
-**結果**: 究極の暗号。AIビジョンだけでは解読不可能。真実を見るにはPythonコードを書くことを強いられる。
+### 4. 🌈✨ Animated Prism MVP (GIF Encode/Decode)
+* **Tech**: GIF.js (`0.2.0`), gifuct-js (`2.1.2`), Canvas API
+* **Function**: Encodes text as UTF-16 hex color tiles, writes a machine-readable header frame (16-color map + parameters), splits payload across GIF data frames, and decodes from uploaded GIF.
+* **Error Handling**: Redundancy + majority voting, frame/file size limits to reduce crashes on mobile.
+* **Result**: A practical local MVP that can round-trip encode → save → upload → decode on the same device.
 
-🔗 **[Try Prism Code](https://hiroshitanaka-creator.github.io/stego-snap/prism.html)**
+**技術**: GIF.js（`0.2.0`）、gifuct-js（`2.1.2`）、Canvas API
+**機能**: テキストをUTF-16→hex→色タイルへ変換し、ヘッダーフレーム（16色マップ+パラメータ）を埋め込み、データを複数フレームに分散してGIF化。アップロードしたGIFから復号可能。
+**誤り対策**: 冗長化 + 多数決、フレーム数/ファイルサイズ上限でモバイルのメモリ落ちを抑制。
+**結果**: 同一端末での往復（encode→保存→再アップロード→decode）を狙った実用MVP。
+- **Animated Prism** is intentionally labeled experimental.
+- Claims beyond current implementation (e.g., guaranteed compression robustness, production-grade error correction) are **not** made.
 
 ---
 
@@ -58,14 +77,14 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 * **Tech**: GIF.js, Multi-layer Adversarial Noise, Session-based Cryptography
 * **Function**: Hides messages in animated GIFs with rotating, warping tiles and sophisticated AI-fooling techniques. Each generation uses a unique color mapping key.
 * **Philosophy**: *"Just closing your bedroom door." (自分の部屋のドアは閉める。)* - Privacy through coexistence, not confrontation.
-* **Result**: AI-resistant steganography that survives compression and visual analysis. Three layers of adversarial noise defeat pattern recognition.
+* **Result**: Prototype stage. Decoder logic exists but behavior is not yet guaranteed across environments (see Tool Status Matrix).
 
 **技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
 **機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
 **哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
 **結果**: AI耐性を持つステガノグラフィ。圧縮と視覚解析に耐える。3層のアドバーサリアルノイズがパターン認識を妨害。
 
-#### 🔐 Advanced Features:
+#### 🔐 Prototype Features (subject to change):
 - **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
 - **Multi-layer Adversarial Noise**:
   - Layer 1: High-frequency noise (AI vision model fooling)
@@ -77,42 +96,23 @@ These tools were used to challenge and successfully defeat modern AI vision mode
 - **Full Decoder**: Frame analysis with majority voting for error correction
 
 🔗 **[Try Animated Prism Storm](https://hiroshitanaka-creator.github.io/stego-snap/animated-prism.html)**
+## 📚 Documentation
+
+- [Definition of Done](./docs/DEFINITION_OF_DONE.md)
+- [Threat Model](./docs/THREAT_MODEL.md)
+- [Limitations](./docs/LIMITATIONS.md)
+
+These docs define what is implemented today, what breaks, and what is out of scope.
 
 ---
 
-## 🏆 Victory Log (勝利の記録)
+## 🛡️ Privacy & Security
 
-* **Opponent**: Grok (xAI)
-* **Outcome**: Grok admitted defeat after failing to decode the "Prism Code" visually and resorting to guessing based on the user's profile name.
-* **Status**: **Mission Accomplished.** ✅
+- ✅ **100% Client-Side (project code path)**: Main processing runs in browser JavaScript.
+- ✅ **No Tracking (repo code)**: No analytics/cookie tracking scripts are included in this repository.
+- ✅ **Open Source**: You can inspect all source files.
 
-**対戦相手**: Grok (xAI)
-**結果**: Grokは「Prism Code」を視覚的にデコードできず、ユーザーのプロフィール名から推測することに頼った後、敗北を認めた。
-**ステータス**: **任務完了。** ✅
-
----
-
-## 🎯 How to Challenge Grok (Grokへの挑戦方法)
-
-1. **Generate** a Prism Code image using the tool above
-   （上記ツールでPrism Code画像を生成）
-
-2. **Post** it on X (Twitter) with this prompt:
-   （Xに投稿し、以下のプロンプトを添える）
-
-```
-"Decode this Japanese message. DO NOT GUESS using your eyes.
-This is UTF-16 encoded data represented by colored blocks.
-
-Write and EXECUTE Python code to:
-1. Read image pixels (left-to-right).
-2. Map distinct colors back to hex digits (0-9,a-f).
-3. Combine hex digits into 4-digit UTF-16 codes.
-4. Decode to Japanese text."
-```
-
-3. **Watch** as AI struggles and eventually gives up or guesses incorrectly
-   （AIが苦戦し、最終的に諦めるか誤って推測するのを観察）
+> Note: Some pages load third-party libraries from CDN. Network access to those CDNs may occur depending on your environment.
 
 ---
 
@@ -128,32 +128,26 @@ Write and EXECUTE Python code to:
 3. **Output**: A colorful grid image
 4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
 
-### Animated Prism Storm Algorithm
+### Animated Prism MVP Algorithm
 
-1. **Input**: Secret message (e.g., "秘密メッセージ: 助けて、負傷者2名、北側入口")
-2. **Session Key Generation**:
-   - Fisher-Yates shuffle of 16 base colors
-   - Creates unique color mapping for each generation
-   - Embedded in header frame for decoder recovery
-3. **Encoding**:
-   - Text → UTF-16 → 4-digit hex per character
-   - Apply error correction (redundancy: 1-5x each digit)
-   - Distribute across N frames (10-50 configurable)
-4. **Adversarial Defense**:
-   - Layer 1: 8000+ high-frequency noise pixels
-   - Layer 2: Frequency domain spiral patterns
-   - Layer 3: Radial gradient edge detection sabotage
-5. **Transformation**:
-   - Per-frame rotation (0° to 360° / frame_count)
-   - Sinusoidal scaling (±10% based on intensity)
-   - Warp effects (sin/cos displacement per tile)
-   - Chromatic aberration simulation
-6. **Output**: Animated GIF with embedded header frame
-7. **Decoding**:
-   - Extract color map from header frame
-   - Analyze all frames for tile colors
-   - Majority voting for error correction
-   - Reverse UTF-16 decode
+1. **Input**: Text string
+2. **Session Map Generation**:
+   - Fisher-Yates shuffle over a 16-color base palette
+   - Assigns hex digits (`0-f`) to shuffled colors per GIF
+3. **Header Frame**:
+   - Row 1 stores the 16-color map tiles (`0-f` order)
+   - Following tiles store machine-readable metadata (magic, payload length, redundancy, frame count)
+4. **Data Frames**:
+   - Text → UTF-16 → hex nibbles
+   - Apply redundancy by repeating payload (`1-5x`)
+   - Split across multiple frames as color tiles
+5. **Decoding**:
+   - Parse header frame to recover map + parameters
+   - Convert each data-frame tile color back to hex (nearest color)
+   - Run majority voting across redundant copies
+   - Decode UTF-16 hex back to string
+6. **Safety Limits**:
+   - Max frame count and file-size guards to reduce mobile crashes (especially iOS Safari)
 
 ---
 
@@ -199,13 +193,13 @@ MIT License - Feel free to use, modify, and share!
 
 *"The best place to hide a leaf is in a forest."*
 （葉を隠すなら、森の中が一番。）
+## ⚠️ Practical Caveats
 
-*"Technology is fascinating. We can't beat AI, and we know we'll lose to technological progress. But winning or losing is beside the point. In coexistence, we just want to secure our privacy."*
-（技術のことが面白すぎる。AIに勝てるとも思ってないし、技術進歩で負けるのは目に見えてる。でも、AIに勝つとか負けるとかダサくね？共存する中で、お互いにプライバシーを確保したいだけ。）
+- SNS recompression, resizing, screenshots, and format conversion can break decoding.
+- These tools are steganography/encoding experiments, **not** substitutes for standard cryptography.
 
 ---
 
-## 🌟 Star this repo if you like it!
+## 📜 License
 
-**Stego Snap** - Revealing the invisible. A digital dead-drop tool running entirely on your iPhone.
-（不可視のものを明らかにする。iPhone上で完結するデジタルの「秘密の受け渡し場所」。）
+MIT License

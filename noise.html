@@ -116,6 +116,57 @@
             color: #ff3b30;
             text-decoration: underline;
         }
+
+        .decode-panel {
+            max-width: 800px;
+            margin: 30px auto 0;
+            padding: 16px;
+            background: #141414;
+            border: 1px solid #333;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .decode-panel h2 {
+            margin: 0 0 10px;
+            color: #ff9f0a;
+            font-size: 18px;
+        }
+
+        .decode-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .decode-controls input[type="number"] {
+            width: 110px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 8px;
+            font-family: monospace;
+        }
+
+        .decode-controls input[type="file"] {
+            color: #ccc;
+        }
+
+        #decodeOutput {
+            width: 100%;
+            min-height: 80px;
+            box-sizing: border-box;
+            margin-top: 8px;
+        }
+
+        #decodeStatus {
+            color: #aaa;
+            font-size: 12px;
+            margin: 8px 0 0;
+        }
     </style>
 </head>
 <body>
@@ -138,7 +189,20 @@
     <button onclick="downloadImage()">画像を保存 (Save)</button>
 
     <canvas id="noiseCanvas"></canvas>
+    <canvas id="decodeCanvas"></canvas>
     <img id="outputImage">
+
+    <div class="decode-panel">
+        <h2>Decode (PNG → Text)</h2>
+        <div class="decode-controls">
+            <input type="file" id="decodeImageInput" accept="image/png,image/*">
+            <label>列数(任意): <input type="number" id="manualColumns" min="1" placeholder="auto"></label>
+            <label>行数(任意): <input type="number" id="manualRows" min="1" placeholder="auto"></label>
+            <button onclick="decodeNoiseImage()">Decode</button>
+        </div>
+        <textarea id="decodeOutput" placeholder="ここに復元結果が表示されます" readonly></textarea>
+        <div id="decodeStatus">Auto推定に失敗したら、列数/行数を手動入力してDecodeしてください。</div>
+    </div>
 
     <div class="instructions">
         <strong>🔥 Grokへの追撃プロンプト:</strong><br>
@@ -175,6 +239,8 @@
 
     const canvas = document.getElementById('noiseCanvas');
     const ctx = canvas.getContext('2d');
+    const decodeCanvas = document.getElementById('decodeCanvas');
+    const decodeCtx = decodeCanvas.getContext('2d');
     const outputImage = document.getElementById('outputImage');
 
     function generateNoise() {
@@ -251,6 +317,220 @@
         link.download = 'grok_challenge.png';
         link.href = outputImage.src;
         link.click();
+    }
+
+    function isRedDivider(r, g, b, a) {
+        return a > 100 && r > 200 && g < 90 && b < 90;
+    }
+
+    function brightness(r, g, b) {
+        return (r * 0.299) + (g * 0.587) + (b * 0.114);
+    }
+
+    function estimateDividerY(imageData, width, height) {
+        const data = imageData.data;
+        let bestY = -1;
+        let bestScore = 0;
+
+        for (let y = 0; y < Math.min(height, 180); y++) {
+            let redPixels = 0;
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                if (isRedDivider(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
+                    redPixels++;
+                }
+            }
+            if (redPixels > bestScore) {
+                bestScore = redPixels;
+                bestY = y;
+            }
+        }
+
+        if (bestY === -1 || bestScore < width * 0.25) {
+            return null;
+        }
+
+        return Math.min(bestY + 6, height - 1);
+    }
+
+    function findGridBounds(imageData, width, height, dataStartY) {
+        const data = imageData.data;
+        let minX = width;
+        let maxX = -1;
+        let minY = height;
+        let maxY = -1;
+
+        for (let y = dataStartY; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                const a = data[idx + 3];
+
+                if (isRedDivider(r, g, b, a)) {
+                    continue;
+                }
+
+                if (brightness(r, g, b) < 245) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            return null;
+        }
+
+        return { minX, maxX, minY, maxY };
+    }
+
+    function countSegments(series, threshold) {
+        let segments = 0;
+        let active = false;
+        for (let i = 0; i < series.length; i++) {
+            if (series[i] >= threshold) {
+                if (!active) {
+                    segments++;
+                    active = true;
+                }
+            } else {
+                active = false;
+            }
+        }
+        return segments;
+    }
+
+    function estimateGridSize(imageData, width, bounds) {
+        const data = imageData.data;
+        const gridWidth = bounds.maxX - bounds.minX + 1;
+        const gridHeight = bounds.maxY - bounds.minY + 1;
+        const xSeries = new Array(gridWidth).fill(0);
+        const ySeries = new Array(gridHeight).fill(0);
+
+        for (let y = bounds.minY; y <= bounds.maxY; y++) {
+            for (let x = bounds.minX; x <= bounds.maxX; x++) {
+                const idx = (y * width + x) * 4;
+                const b = brightness(data[idx], data[idx + 1], data[idx + 2]);
+                if (b < 245) {
+                    xSeries[x - bounds.minX]++;
+                    ySeries[y - bounds.minY]++;
+                }
+            }
+        }
+
+        const columns = countSegments(xSeries, Math.max(3, gridHeight * 0.2));
+        const rows = countSegments(ySeries, Math.max(3, gridWidth * 0.2));
+
+        if (!columns || !rows) {
+            return null;
+        }
+        return { columns, rows };
+    }
+
+    function sampleBits(imageData, width, bounds, columns, rows) {
+        const data = imageData.data;
+        const cellWidth = (bounds.maxX - bounds.minX + 1) / columns;
+        const cellHeight = (bounds.maxY - bounds.minY + 1) / rows;
+        let bits = "";
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columns; col++) {
+                const cx = bounds.minX + ((col + 0.5) * cellWidth);
+                const cy = bounds.minY + ((row + 0.5) * cellHeight);
+                let sum = 0;
+                let count = 0;
+
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const x = Math.min(width - 1, Math.max(0, Math.round(cx + dx)));
+                        const y = Math.min(decodeCanvas.height - 1, Math.max(0, Math.round(cy + dy)));
+                        const idx = (y * width + x) * 4;
+                        sum += brightness(data[idx], data[idx + 1], data[idx + 2]);
+                        count++;
+                    }
+                }
+
+                const avg = sum / count;
+                bits += avg < 128 ? '1' : '0';
+            }
+        }
+
+        return bits;
+    }
+
+    function bitsToAscii(bits) {
+        let text = "";
+        for (let i = 0; i + 7 < bits.length; i += 8) {
+            const byteStr = bits.slice(i, i + 8);
+            text += String.fromCharCode(parseInt(byteStr, 2));
+        }
+        return text.replace(/\x00+$/g, '');
+    }
+
+    function decodeNoiseImage() {
+        const fileInput = document.getElementById('decodeImageInput');
+        const statusEl = document.getElementById('decodeStatus');
+        const outputEl = document.getElementById('decodeOutput');
+        const manualColumns = parseInt(document.getElementById('manualColumns').value, 10);
+        const manualRows = parseInt(document.getElementById('manualRows').value, 10);
+
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert('デコードしたい画像を選択してね！');
+            return;
+        }
+
+        const img = new Image();
+        img.onload = function() {
+            decodeCanvas.width = img.width;
+            decodeCanvas.height = img.height;
+            decodeCtx.drawImage(img, 0, 0);
+
+            const imageData = decodeCtx.getImageData(0, 0, img.width, img.height);
+            const dividerY = estimateDividerY(imageData, img.width, img.height);
+
+            if (dividerY === null) {
+                statusEl.textContent = '❌ 赤い区切り線を検出できませんでした。手動入力で再試行してください。';
+                outputEl.value = '';
+                return;
+            }
+
+            const bounds = findGridBounds(imageData, img.width, img.height, dividerY);
+            if (!bounds) {
+                statusEl.textContent = '❌ データ領域を検出できませんでした。';
+                outputEl.value = '';
+                return;
+            }
+
+            let columns = Number.isInteger(manualColumns) && manualColumns > 0 ? manualColumns : null;
+            let rows = Number.isInteger(manualRows) && manualRows > 0 ? manualRows : null;
+
+            if (!columns || !rows) {
+                const estimated = estimateGridSize(imageData, img.width, bounds);
+                if (!estimated) {
+                    statusEl.textContent = '⚠️ Auto推定失敗。列数/行数を手動で入力してください。';
+                    outputEl.value = '';
+                    return;
+                }
+                columns = columns || estimated.columns;
+                rows = rows || estimated.rows;
+            }
+
+            const bits = sampleBits(imageData, img.width, bounds, columns, rows);
+            const decodedText = bitsToAscii(bits);
+            outputEl.value = decodedText;
+            statusEl.textContent = `✅ Decode完了: ${columns}x${rows}, dividerY=${dividerY}, ${Math.floor(bits.length / 8)} bytes`;
+        };
+
+        img.onerror = function() {
+            statusEl.textContent = '❌ 画像読み込みに失敗しました。';
+            outputEl.value = '';
+        };
+
+        img.src = URL.createObjectURL(fileInput.files[0]);
     }
 
     // 初期実行（ページ読み込み時に自動生成）
