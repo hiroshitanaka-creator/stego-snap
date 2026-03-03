@@ -1,5 +1,7 @@
 # 📦 AI-Proof Toy Box (Grok Challenge)
 
+[![Unit Tests](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml/badge.svg)](https://github.com/hiroshitanaka-creator/stego-snap/actions/workflows/test.yml)
+
 **"Visible to Humans, Invisible to AI."**
 （人間には見えて、AIには見えない。）
 
