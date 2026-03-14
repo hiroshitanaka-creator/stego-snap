@@ -82,7 +82,7 @@ All tools run in the browser and are designed for local experimentation.
 **技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
 **機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
 **哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
-**結果**: AI耐性を持つステガノグラフィ。圧縮と視覚解析に耐える。3層のアドバーサリアルノイズがパターン認識を妨害。
+**結果**: 研究段階の試作。ローカル環境での実験用途を想定し、挙動や耐性は環境差の影響を受けます。
 
 #### 🔐 Prototype Features (subject to change):
 - **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
@@ -91,7 +91,7 @@ All tools run in the browser and are designed for local experimentation.
   - Layer 2: Frequency domain attack (pattern recognition interference)
   - Layer 3: Edge detection sabotage (gradient noise)
 - **Non-linear Transformations**: Rotation, warping, chromatic aberration
-- **Reed-Solomon Style Error Correction**: Adjustable redundancy levels (1-5)
+- **Repetition + Majority Voting**: Adjustable redundancy levels (1-5)
 - **Frame Distribution**: Message spread across 10-50 configurable frames
 - **Full Decoder**: Frame analysis with majority voting for error correction
 
