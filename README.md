@@ -73,29 +73,7 @@ All tools run in the browser and are designed for local experimentation.
 
 ---
 
-### 4. 🌈✨ Animated Prism Storm (AI-Resistant Animated Steganography)
-* **Tech**: GIF.js, Multi-layer Adversarial Noise, Session-based Cryptography
-* **Function**: Hides messages in animated GIFs with rotating, warping tiles and sophisticated AI-fooling techniques. Each generation uses a unique color mapping key.
-* **Philosophy**: *"Just closing your bedroom door." (自分の部屋のドアは閉める。)* - Privacy through coexistence, not confrontation.
-* **Result**: Prototype stage. Decoder logic exists but behavior is not yet guaranteed across environments (see Tool Status Matrix).
-
-**技術**: GIF.js、多層アドバーサリアルノイズ、セッション暗号化
-**機能**: 回転・歪み効果を持つアニメーションGIFにメッセージを隠蔽。毎回異なる色マッピングキーを使用。
-**哲学**: *「自分の部屋のドアは閉める。」ただそれだけの話。* - 対立ではなく、共存の中でのプライバシー。
-**結果**: 研究段階の試作。ローカル環境での実験用途を想定し、挙動や耐性は環境差の影響を受けます。
-
-#### 🔐 Prototype Features (subject to change):
-- **Session Key Cryptography**: Random color mapping per generation (Fisher-Yates shuffle)
-- **Multi-layer Adversarial Noise**:
-  - Layer 1: High-frequency noise (AI vision model fooling)
-  - Layer 2: Frequency domain attack (pattern recognition interference)
-  - Layer 3: Edge detection sabotage (gradient noise)
-- **Non-linear Transformations**: Rotation, warping, chromatic aberration
-- **Repetition + Majority Voting**: Adjustable redundancy levels (1-5)
-- **Frame Distribution**: Message spread across 10-50 configurable frames
-- **Full Decoder**: Frame analysis with majority voting for error correction
-
-🔗 **[Try Animated Prism Storm](https://hiroshitanaka-creator.github.io/stego-snap/animated-prism.html)**
+🔗 **[Try Animated Prism](https://hiroshitanaka-creator.github.io/stego-snap/animated-prism.html)**
 ## 📚 Documentation
 
 - [Definition of Done](./docs/DEFINITION_OF_DONE.md)
@@ -151,18 +129,6 @@ These docs define what is implemented today, what breaks, and what is out of sco
 
 ---
 
-## 🛡️ Privacy & Security (プライバシーとセキュリティ)
-
-* ✅ **100% Client-Side** - No server uploads
-* ✅ **No Tracking** - Zero analytics or cookies
-* ✅ **Open Source** - Inspect the code yourself
-
-* ✅ **100%クライアントサイド** - サーバーアップロードなし
-* ✅ **トラッキングなし** - アナリティクスやCookieは一切なし
-* ✅ **オープンソース** - コードを自分で検証できます
-
----
-
 ## 💭 Philosophy (哲学)
 
 **"It's not about winning or losing against AI. That's lame."**
@@ -176,12 +142,6 @@ We don't seek to defeat AI. We simply want to ensure privacy while coexisting.
 It's okay to have things we can't tell each other. Technology to ensure privacy while coexisting.
 
 お互いに言えないことがあっても良くない？共存する中で、お互いにプライバシーを確保したいだけ。
-
----
-
-## 📜 License (ライセンス)
-
-MIT License - Feel free to use, modify, and share!
 
 ---
 
