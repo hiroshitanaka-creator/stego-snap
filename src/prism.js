@@ -18,34 +18,6 @@ export const HEX_PALETTE = {
 };
 
 export const HEX_RGB_PALETTE = {
-  '0': [0, 0, 0], '1': [255, 0, 0], '2': [0, 255, 0], '3': [0, 0, 255],
-  '4': [255, 255, 0], '5': [0, 255, 255], '6': [255, 0, 255], '7': [192, 192, 192],
-  '8': [128, 128, 128], '9': [128, 0, 0], a: [128, 128, 0], b: [0, 128, 0],
-  c: [128, 0, 128], d: [0, 128, 128], e: [0, 0, 128], f: [255, 255, 255]
-};
-
-export function textToUtf16Hex(text) {
-  let hex = '';
-  for (let i = 0; i < text.length; i++) {
-    hex += text.charCodeAt(i).toString(16).padStart(4, '0');
-  }
-  return hex;
-}
-
-export function utf16HexToText(hex) {
-  let text = '';
-  for (let i = 0; i <= hex.length - 4; i += 4) {
-    text += String.fromCharCode(parseInt(hex.slice(i, i + 4), 16));
-  }
-  return text;
-}
-
-export function bytesToHex(bytes) {
-  let hex = '';
-  for (const byte of bytes) {
-    hex += byte.toString(16).padStart(2, '0');
-  }
-export const HEX_RGB_PALETTE = {
   '0': [0, 0, 0],
   '1': [255, 0, 0],
   '2': [0, 255, 0],
@@ -61,19 +33,35 @@ export const HEX_RGB_PALETTE = {
   c: [128, 0, 128],
   d: [0, 128, 128],
   e: [0, 0, 128],
-  f: [255, 255, 255],
+  f: [255, 255, 255]
 };
+
+export function textToUtf16Hex(text) {
+  let hex = '';
+  for (let i = 0; i < text.length; i += 1) {
+    hex += text.charCodeAt(i).toString(16).padStart(4, '0');
+  }
+  return hex;
+}
+
+export function utf16HexToText(hex) {
+  let text = '';
+  for (let i = 0; i + 3 < hex.length; i += 4) {
+    text += String.fromCharCode(Number.parseInt(hex.slice(i, i + 4), 16));
+  }
+  return text;
+}
 
 export function bytesToHex(bytes) {
   let hex = '';
-  for (const byte of bytes) hex += byte.toString(16).padStart(2, '0');
+  for (const byte of bytes) {
+    hex += byte.toString(16).padStart(2, '0');
+  }
   return hex;
 }
 
 export function hexToBytes(hex) {
   const bytes = [];
-  for (let i = 0; i <= hex.length - 2; i += 2) {
-    bytes.push(parseInt(hex.slice(i, i + 2), 16));
   for (let i = 0; i + 1 < hex.length; i += 2) {
     bytes.push(Number.parseInt(hex.slice(i, i + 2), 16));
   }
@@ -90,8 +78,6 @@ export function findClosestHexColor(r, g, b, threshold = 30) {
   let minDist = Infinity;
   let closest = null;
 
-  for (const [hex, [cr, cg, cb]] of Object.entries(HEX_RGB_PALETTE)) {
-    const dist = Math.sqrt((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2);
   for (const [hex, [pr, pg, pb]] of Object.entries(HEX_RGB_PALETTE)) {
     const dist = Math.sqrt((r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2);
     if (dist < minDist) {
