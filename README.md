@@ -22,8 +22,8 @@ All tools run in the browser and are designed for local experimentation.
 |---|---|---|---|
 | Stego Snap (LSB) | `index.html` | **Stable** | In-page Encode/Decode flow exists and is documented as compression-fragile. |
 | Multi-Layer Stego | `multi-layer-stego.html` | **Stable** | Encode/Decode UI exists with optional encryption and integrity-oriented messaging. |
-| Noise Talk | `noise.html` | **Experimental** | Encoder-centric tool; in-page decode roundtrip is not provided. |
-| Prism Code | `prism.html` | **Experimental** | Encoder-centric tool; decode path is external/code-assisted rather than in-page. |
+| Noise Talk | `noise.html` | **Experimental** | In-page decode UI exists; reliability is still treated as experimental across environments. |
+| Prism Code | `prism.html` | **Experimental** | In-page decode UI and local roundtrip check exist, but compatibility is not guaranteed. |
 | Animated Prism | `animated-prism.html` | **Experimental** | Prototype-level implementation; UI/logic completeness is not guaranteed. |
 | Disaster Mesh Crypto | `disaster-mesh-complete.html` | **Experimental** | Included as standalone crypto experiment, not part of primary stego flow. |
 
@@ -43,12 +43,12 @@ All tools run in the browser and are designed for local experimentation.
 ### 2. 🔊 Noise Talk (`noise.html`)
 - **Tech**: Binary grid visualization
 - **What it does**: Converts text to black/white grid image with grid size header.
-- **Current status**: Designed for script/pixel reading rather than pure eyeballing.
+- **Current status**: Includes PNG-to-text decode UI with auto/manual grid parameters, still experimental.
 
 ### 3. 🌈 Prism Code (`prism.html`)
 - **Tech**: UTF-16 hex + fixed 16-color palette
 - **What it does**: Encodes text into color tiles.
-- **Current status**: Deterministic encoding; decoding requires the same color mapping.
+- **Current status**: Includes upload-decode flow and in-page roundtrip check; remains experimental.
 
 ### 4. 🌈✨ Animated Prism (`animated-prism.html`) — **Experimental**
 - **Status**: Prototype / experimental page.
@@ -126,7 +126,7 @@ These docs define what is implemented today, what breaks, and what is out of sco
    - Express as 4-digit hexadecimal (e.g., `と` = `3068`)
    - Map each hex digit (0-9, a-f) to a distinct color
 3. **Output**: A colorful grid image
-4. **Decoding**: Requires pixel reading and reverse mapping (Python/code required)
+4. **Decoding**: Upload PNG in-page and reverse map pixels to hex using the built-in decoder
 
 ### Animated Prism MVP Algorithm
 
