@@ -1199,11 +1199,16 @@ function majorityVote(results) {
     }
 
     if (messages.length === 0) {
-        return { final: null, method: 'none', matches: 0 };
+        return { final: null, method: 'none', matches: 0, selectedLayers: [] };
     }
 
     if (messages.length === 1) {
-        return { final: messages[0].message, method: 'single', matches: 1 };
+        return {
+            final: messages[0].message,
+            method: 'single',
+            matches: 1,
+            selectedLayers: [messages[0].layer]
+        };
     }
 
     // Check for 2/3 or 3/3 agreement
@@ -1213,24 +1218,58 @@ function majorityVote(results) {
 
     // Check exact matches
     if (m0 === m1 && m1 === m2 && m0) {
-        return { final: m0, method: '3/3 unanimous', matches: 3 };
+        return {
+            final: m0,
+            method: '3/3 unanimous',
+            matches: 3,
+            selectedLayers: messages.map((m) => m.layer)
+        };
     }
 
     if (m0 === m1 && m0) {
-        return { final: m0, method: '2/3 majority', matches: 2, matchedLayers: [messages[0].layer, messages[1].layer] };
+        return {
+            final: m0,
+            method: '2/3 majority',
+            matches: 2,
+            selectedLayers: [messages[0].layer, messages[1].layer]
+        };
     }
 
     if (m0 === m2 && m0) {
-        return { final: m0, method: '2/3 majority', matches: 2, matchedLayers: [messages[0].layer, messages[2].layer] };
+        return {
+            final: m0,
+            method: '2/3 majority',
+            matches: 2,
+            selectedLayers: [messages[0].layer, messages[2].layer]
+        };
     }
 
     if (m1 === m2 && m1) {
-        return { final: m1, method: '2/3 majority', matches: 2, matchedLayers: [messages[1].layer, messages[2].layer] };
+        return {
+            final: m1,
+            method: '2/3 majority',
+            matches: 2,
+            selectedLayers: [messages[1].layer, messages[2].layer]
+        };
     }
 
     // No agreement - return highest confidence with warning
     messages.sort((a, b) => b.confidence - a.confidence);
-    return { final: messages[0].message, method: 'conflict (highest confidence)', matches: 1, conflict: true };
+    return {
+        final: messages[0].message,
+        method: 'conflict (highest confidence)',
+        matches: 1,
+        conflict: true,
+        selectedLayers: [messages[0].layer]
+    };
+}
+
+function getVoteStrength(votingResult) {
+    if (!votingResult.final) return { label: 'No result', className: 'fail', hint: 'No valid frame was detected in any layer.' };
+    if (votingResult.matches === 3) return { label: 'Strong', className: 'match', hint: 'All decoded layers agreed on the same message.' };
+    if (votingResult.matches === 2) return { label: 'Medium', className: 'success', hint: 'Two layers matched, which is usually reliable.' };
+    if (votingResult.conflict) return { label: 'Low', className: 'fail', hint: 'Layer outputs conflicted. Verify with sender before trusting this result.' };
+    return { label: 'Low', className: 'warning', hint: 'Only one layer was decoded. Treat as unverified output.' };
 }
 
 function decodeNoiseLayer(ctx, width, height) {
@@ -1419,11 +1458,12 @@ function detectEncryptedLikeData(text) {
 
 function displayDecodeResults(results, votingResult, passphrase) {
     const successCount = Object.values(results).filter(r => r.success).length;
+    const voteStrength = getVoteStrength(votingResult);
 
     let html = `<div class="result-box ${successCount > 0 ? (votingResult.conflict ? 'warning' : 'success') : 'error'}">`;
 
     if (successCount > 0) {
-        const matchedLayerNames = (votingResult.matchedLayers || []).map(l => ({ lsb: 'LSB', prism: 'Prism', noise: 'Noise' }[l] || l));
+        const selectedLayerNames = (votingResult.selectedLayers || []).map(l => ({ lsb: 'LSB', prism: 'Prism', noise: 'Noise' }[l] || l));
         const encryptedHint = votingResult.final ? detectEncryptedLikeData(votingResult.final) : { encryptedLike: false };
         const decryptFailureCount = Object.values(results).filter(r => r.decryptFailed).length;
 
@@ -1431,8 +1471,9 @@ function displayDecodeResults(results, votingResult, passphrase) {
         html += `<ul class="summary-list">
             <li><strong>Layers decoded:</strong> ${successCount}/3</li>
             <li><strong>Voting method:</strong> ${escapeHtml(votingResult.method)}</li>
-            <li><strong>Matched layers:</strong> ${matchedLayerNames.length ? matchedLayerNames.join(', ') : 'No exact layer agreement'}</li>
+            <li><strong>Selected layers:</strong> ${selectedLayerNames.length ? selectedLayerNames.join(', ') : 'No exact layer agreement'}</li>
             <li><strong>Final decision path:</strong> ${votingResult.conflict ? 'Conflict fallback (highest confidence)' : 'Consensus / majority selection'}</li>
+            <li><strong>Trust signal:</strong> <span class="status ${voteStrength.className}">${voteStrength.label}</span> <span style="color:#999;">${voteStrength.hint}</span></li>
         </ul>`;
 
         if (votingResult.conflict) {
@@ -1484,14 +1525,14 @@ function displayDecodeResults(results, votingResult, passphrase) {
     const layerNames = { lsb: 'Layer 1: LSB', prism: 'Layer 2: Prism', noise: 'Layer 3: Noise' };
 
     for (const [layer, result] of Object.entries(results)) {
-        const matchedInVote = votingResult.matchedLayers?.includes(layer);
+        const selectedInVote = votingResult.selectedLayers?.includes(layer);
         const encryptedHint = result.success ? detectEncryptedLikeData(result.message) : { encryptedLike: false };
 
         html += `<div class="layer-result">
             <h4>
                 ${layerNames[layer]}
-                <span class="status ${result.success ? (matchedInVote ? 'match' : 'success') : 'fail'}">
-                    ${result.success ? (matchedInVote ? 'Matched vote' : 'Decoded') : 'Not Found'}
+                <span class="status ${result.success ? (selectedInVote ? 'match' : 'success') : 'fail'}">
+                    ${result.success ? (selectedInVote ? 'Selected' : 'Decoded') : 'Not Found'}
                 </span>
             </h4>
             ${result.success ? `
