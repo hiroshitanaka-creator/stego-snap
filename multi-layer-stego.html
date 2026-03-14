@@ -1157,9 +1157,9 @@ async function decodeMultiLayer() {
     ctx.drawImage(decodeImage, 0, 0);
 
     const results = {
-        lsb: { success: false, message: '', confidence: 0, raw: null },
-        prism: { success: false, message: '', confidence: 0, raw: null },
-        noise: { success: false, message: '', confidence: 0, raw: null }
+        lsb: { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false },
+        prism: { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false },
+        noise: { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false }
     };
 
     // Decode all layers
@@ -1175,6 +1175,9 @@ async function decodeMultiLayer() {
                 if (decrypted) {
                     results[layer].message = decrypted;
                     results[layer].confidence = Math.min(95, results[layer].confidence + 15);
+                    results[layer].decrypted = true;
+                } else {
+                    results[layer].decryptFailed = true;
                 }
             }
         }
@@ -1231,7 +1234,7 @@ function majorityVote(results) {
 }
 
 function decodeNoiseLayer(ctx, width, height) {
-    const result = { success: false, message: '', confidence: 0, raw: null };
+    const result = { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false };
 
     // Full height scan (no limit)
     const imageData = ctx.getImageData(0, 0, width, height);
@@ -1303,7 +1306,7 @@ function decodeNoiseLayer(ctx, width, height) {
 }
 
 function decodePrismLayer(ctx, width, height) {
-    const result = { success: false, message: '', confidence: 0, raw: null };
+    const result = { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false };
 
     // Full height scan
     const imageData = ctx.getImageData(0, 0, width, height);
@@ -1383,7 +1386,7 @@ function decodePrismLayer(ctx, width, height) {
 }
 
 async function decodeLSBLayer(ctx, width, height) {
-    const result = { success: false, message: '', confidence: 0, raw: null };
+    const result = { success: false, message: '', confidence: 0, raw: null, decrypted: false, decryptFailed: false };
 
     // LSB is embedded from (0,0) across full canvas - read same way
     const imageData = ctx.getImageData(0, 0, width, height);
@@ -1422,6 +1425,7 @@ function displayDecodeResults(results, votingResult, passphrase) {
     if (successCount > 0) {
         const matchedLayerNames = (votingResult.matchedLayers || []).map(l => ({ lsb: 'LSB', prism: 'Prism', noise: 'Noise' }[l] || l));
         const encryptedHint = votingResult.final ? detectEncryptedLikeData(votingResult.final) : { encryptedLike: false };
+        const decryptFailureCount = Object.values(results).filter(r => r.decryptFailed).length;
 
         html += `<h3 style="margin-bottom: 15px;">Decoding Results</h3>`;
         html += `<ul class="summary-list">
@@ -1435,6 +1439,13 @@ function displayDecodeResults(results, votingResult, passphrase) {
             html += `<div class="info-box warning" style="margin: 10px 0;">
                 <strong>Warning:</strong> Layers disagree. The output below is the highest-confidence candidate.
                 Verify with sender and compare layer details.
+            </div>`;
+        }
+
+        if (passphrase && decryptFailureCount > 0) {
+            html += `<div class="info-box warning" style="margin: 10px 0;">
+                <strong>Passphrase check:</strong> ${decryptFailureCount} layer(s) looked encrypted but could not be decrypted.
+                If this output looks wrong, confirm the exact passphrase (case-sensitive).
             </div>`;
         }
 
@@ -1489,6 +1500,9 @@ function displayDecodeResults(results, votingResult, passphrase) {
                 </p>
                 <p style="color: #666; font-size: 0.82em; margin-top: 4px;">
                     ${encryptedHint.encryptedLike ? 'Encrypted-like data pattern detected' : 'Plain-text-like / non-encrypted pattern'}
+                </p>
+                <p style="color: #666; font-size: 0.82em; margin-top: 2px;">
+                    ${result.decrypted ? 'Passphrase decrypt: success' : (result.decryptFailed ? 'Passphrase decrypt: failed' : 'Passphrase decrypt: not attempted')}
                 </p>
                 <div class="confidence-bar">
                     <div class="confidence-fill" style="width: ${result.confidence}%"></div>
