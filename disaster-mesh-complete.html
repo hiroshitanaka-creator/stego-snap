@@ -11,6 +11,28 @@
 
   <style>
     body { font-family: system-ui, sans-serif; margin: 16px; }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #0077cc;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .tool-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 12px 0 20px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .tool-nav a {
+      text-decoration: none;
+      color: #334155;
+      font-weight: 600;
+    }
     textarea, input, select { width: 100%; padding: 8px; box-sizing: border-box; }
     textarea { min-height: 110px; }
     pre { background: #f6f6f6; padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
@@ -25,6 +47,14 @@
 </head>
 
 <body>
+  <a href="index.html" class="back-link">← Back to Stego Snap</a>
+  <div class="tool-nav" aria-label="Other tools">
+    <a href="index.html">🖼️ Stego Snap</a>
+    <a href="noise.html">🔊 Noise Talk</a>
+    <a href="prism.html">🌈 Prism Code</a>
+    <a href="animated-prism.html">🌈✨ Animated Prism</a>
+    <a href="multi-layer-stego.html">⚡ Multi-Layer Stego</a>
+  </div>
   <h1>Disaster Mesh Crypto - Complete</h1>
   <div class="small">
     ✅ sign(Ed25519) と box(X25519-XSalsa20-Poly1305) 鍵分離 / ✅ ephemeral box鍵 / ✅ 受信者束縛 / ✅ TOFU成立 / ✅ リプレイ防止 / ✅ 署名データ完全一致
