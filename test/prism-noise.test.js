@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bytesToHex, hexToBytes, findClosestHexColor } from '../src/prism.js';
+import {
+  bytesToHex,
+  hexToBytes,
+  findClosestHexColor,
+  textToUtf16Hex,
+  utf16HexToText
+} from '../src/prism.js';
 import { bytesToNoiseBinary, noiseBinaryToBytes, bitToBrightness, brightnessToBit } from '../src/noise.js';
 
 test('bytesToHex converts with leading zero', () => {
@@ -14,6 +20,15 @@ test('hexToBytes ignores trailing nibble', () => {
 test('hex<->bytes roundtrip', () => {
   const source = new Uint8Array([9, 16, 32, 255]);
   assert.deepEqual(Array.from(hexToBytes(bytesToHex(source))), Array.from(source));
+});
+
+test('textToUtf16Hex and utf16HexToText roundtrip unicode', () => {
+  const source = '秘密🙂メッセージ';
+  assert.equal(utf16HexToText(textToUtf16Hex(source)), source);
+});
+
+test('utf16HexToText skips invalid utf16 chunks safely', () => {
+  assert.equal(utf16HexToText('0041zzzz0042'), 'AB');
 });
 
 test('findClosestHexColor exact match works', () => {
