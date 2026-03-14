@@ -290,16 +290,6 @@
         return bestDist <= (threshold * threshold) ? best : null;
     }
 
-        // 1. 文字列をUTF-16のHex(16進数)文字列に変換
-        const hexString = textToUtf16Hex(text);
-    function textToHex(text) {
-        let hexString = "";
-        for (let i = 0; i < text.length; i++) {
-            hexString += text.charCodeAt(i).toString(16).padStart(4, '0');
-        }
-        return hexString;
-    }
-
     function hexToText(hexString) {
         if (!hexString || hexString.length < 4) {
             return "";
@@ -314,13 +304,11 @@
     }
 
     function renderPrismToCanvas(text, targetCanvas, targetCtx) {
-        const hexString = textToHex(text);
+        const hexString = textToUtf16Hex(text);
 
         const totalBlocks = hexString.length;
         // なるべく横長にする（ヘッダーを描くため）
         const { columns, rows } = computeGridDimensions(totalBlocks, 2);
-        const columns = Math.ceil(Math.sqrt(totalBlocks * 2));
-        const rows = Math.ceil(totalBlocks / columns);
 
         const pixelSize = 40;
         const headerHeight = 60;
