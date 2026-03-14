@@ -47,7 +47,11 @@ export function textToUtf16Hex(text) {
 export function utf16HexToText(hex) {
   let text = '';
   for (let i = 0; i + 3 < hex.length; i += 4) {
-    text += String.fromCharCode(Number.parseInt(hex.slice(i, i + 4), 16));
+    const chunk = hex.slice(i, i + 4);
+    if (!/^[0-9a-f]{4}$/i.test(chunk)) {
+      continue;
+    }
+    text += String.fromCharCode(Number.parseInt(chunk, 16));
   }
   return text;
 }
