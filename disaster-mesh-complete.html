@@ -215,7 +215,15 @@ function u64beFromNumber(ts) {
 }
 
 function setStatus(ok, msg) {
-  document.getElementById("status").innerHTML = (ok ? `<span class="ok">OK</span> ` : `<span class="ng">NG</span> `) + msg;
+  const statusEl = document.getElementById("status");
+  statusEl.textContent = "";
+
+  const badge = document.createElement("span");
+  badge.className = ok ? "ok" : "ng";
+  badge.textContent = ok ? "OK" : "NG";
+
+  statusEl.appendChild(badge);
+  statusEl.appendChild(document.createTextNode(` ${msg}`));
 }
 
 /* =========================
