@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animated Prism Storm - Hardened MVP</title>
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
-    <script src="https://unpkg.com/gifuct-js"></script>
+    <script src="./vendor/gif.js"></script>
+    <script src="./vendor/gifuct.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #141625; color: #e8e8f0; }
         .container { max-width: 980px; margin: 0 auto; }
@@ -221,9 +221,9 @@ function avgColor(ctx, x, y, radius = 1) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animated Prism MVP</title>
-  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct.min.js"></script>
+  <script src="./vendor/gif.js"></script>
+  <script src="./vendor/gif.worker.js"></script>
+  <script src="./vendor/gifuct.min.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 24px; background: #111827; color: #e5e7eb; }
     h1 { margin-bottom: 8px; }
@@ -330,7 +330,7 @@ function avgColor(ctx, x, y, radius = 1) {
           quality: 10,
           width: WIDTH,
           height: HEIGHT,
-          workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+          workerScript: './vendor/gif.worker.js'
         });
 
         const headerMeta = buildHeaderMeta(payloadHex.length, redundancy, dataFrames, repeatedHex.length);
@@ -395,7 +395,7 @@ async function generateAnimatedPrism() {
     const crc = calcCrc(payloadHex);
     const metaHex = encodeMeta({ redundancy, frameCount, mode, seed, payloadLen: payloadHex.length, crc });
 
-    const gif = new GIF({ workers: 2, quality: 8, workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js', width: preview.width, height: preview.height });
+    const gif = new GIF({ workers: 2, quality: 8, workerScript: './vendor/gif.worker.js', width: preview.width, height: preview.height });
 
     drawHeader(pctx, map, metaHex);
     gif.addFrame(preview, { delay: 250 });
